@@ -211,7 +211,7 @@ u8 sBackgroundMusicForDynamics = SEQUENCE_NONE;
 
 #define _ sDynNone
 s16 *sLevelDynamics[LEVEL_COUNT] = {
-    _,         // LEVEL_NONE
+    _, // LEVEL_NONE
 #include "levels/level_defines.h"
 };
 #undef _
@@ -252,7 +252,7 @@ u8 sLevelAreaReverbs[LEVEL_COUNT][3] = {
 #define DEFINE_LEVEL(_0, _1, _2, _3, _4, volume, _6, _7, _8, _9, _10) volume,
 
 u16 sLevelAcousticReaches[LEVEL_COUNT] = {
-    20000,    // LEVEL_NONE
+    20000, // LEVEL_NONE
 #include "levels/level_defines.h"
 };
 
@@ -413,7 +413,7 @@ struct EuAudioCmd sAudioCmd[0x100];
 OSMesg OSMesg0;
 s32 pad1; // why is there 1 s32 here
 OSMesg OSMesg1;
-s32 pad2[2]; // it's not just that the struct is bigger than we think, because there are 2 here
+s32 pad2[2];    // it's not just that the struct is bigger than we think, because there are 2 here
 OSMesg OSMesg2; // and none here. wth nintendo
 OSMesg OSMesg3;
 #else // VERSION_SH
@@ -988,11 +988,11 @@ static void select_current_sounds(u8 bank) {
     u32 liveSoundPriorities[16] = { 0x10000000, 0x10000000, 0x10000000, 0x10000000,
                                     0x10000000, 0x10000000, 0x10000000, 0x10000000,
                                     0x10000000, 0x10000000, 0x10000000, 0x10000000,
-                     0x10000000, 0x10000000, 0x10000000, 0x10000000 };
+                                    0x10000000, 0x10000000, 0x10000000, 0x10000000 };
     u8 liveSoundIndices[16] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     u8 liveSoundStatuses[16] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+                                 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     u8 numSoundsInBank = 0;
     u8 requestedPriority;
 
@@ -1043,7 +1043,7 @@ static void select_current_sounds(u8 bank) {
                 * 1;
 
             requestedPriority = (sSoundBanks[bank][soundIndex].soundBits & SOUNDARGS_MASK_PRIORITY)
-                  >> SOUNDARGS_SHIFT_PRIORITY;
+                                >> SOUNDARGS_SHIFT_PRIORITY;
 
             // Recompute priority, possibly based on the sound's source position relative to the
             // camera.
@@ -1080,8 +1080,8 @@ static void select_current_sounds(u8 bank) {
                     liveSoundStatuses[i] = sSoundBanks[bank][soundIndex].soundStatus; // unused
                     // Break
                     i = sMaxChannelsForSoundBank[bank];
-        }
-    }
+                }
+            }
 
             numSoundsInBank++;
         }
@@ -1841,7 +1841,7 @@ static void func_8031F96C(u8 player) {
             if (D_80360928[player][i].remainingFrames == 0) {
 #if defined(VERSION_EU)
                 func_802ad728(0x01000000 | (player & 0xff) << 16 | (i & 0xff) << 8,
-                        FLOAT_CAST(D_80360928[player][i].target) / 127.0);
+                              FLOAT_CAST(D_80360928[player][i].target) / 127.0);
 #elif defined(VERSION_SH)
                 func_802ad728(0x01000000 | (player & 0xff) << 16 | (i & 0xff) << 8,
                               FLOAT_CAST(D_80360928[player][i].target) / 127.0f);

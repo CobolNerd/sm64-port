@@ -140,7 +140,7 @@ void *segmented_to_virtual(const void *addr) {
     return (void *) addr;
 }
 
-void *virtual_to_segmented(UNUSED u32 segment, const void *addr) {
+void *virtual_to_segmented(u32 segment, const void *addr) {
     return (void *) addr;
 }
 
@@ -354,6 +354,7 @@ u32 main_pool_pop_state(void) {
 static void dma_read(u8 *dest, u8 *srcStart, u8 *srcEnd) {
 #ifdef TARGET_N64
     u32 size = ALIGN16(srcEnd - srcStart);
+
     osInvalDCache(dest, size);
     while (size != 0) {
         u32 copySize = (size >= 0x1000) ? 0x1000 : size;
@@ -375,7 +376,7 @@ static void dma_read(u8 *dest, u8 *srcStart, u8 *srcEnd) {
  * Perform a DMA read from ROM, allocating space in the memory pool to write to.
  * Return the destination address.
  */
-static void *dynamic_dma_read(u8 *srcStart, u8 *srcEnd, UNUSED u32 side) {
+static void *dynamic_dma_read(u8 *srcStart, u8 *srcEnd, u32 side) {
     void *dest;
     u32 size = ALIGN16(srcEnd - srcStart);
 
