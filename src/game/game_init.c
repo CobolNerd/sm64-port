@@ -18,7 +18,6 @@
 #include "print.h"
 #include "segment2.h"
 #include "segment_symbols.h"
-#include "thread6.h"
 #include "rumble_init.h"
 #include <prevent_bss_reordering.h>
 

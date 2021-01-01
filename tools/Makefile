@@ -65,15 +65,11 @@ all: all-except-recomp ido5.3_recomp
 clean:
 	$(RM) $(ALL_PROGRAMS)
 	$(MAKE) -C audiofile clean
-	$(MAKE) -C ido5.3_recomp clean
 
 define COMPILE
 $(1): $($1_SOURCES)
 	$$(CC) $(CFLAGS) $($1_CFLAGS) $$^ -o $$@ $($1_LDFLAGS) $(LDFLAGS)
 endef
-
-ido5.3_recomp:
-	$(MAKE) -C ido5.3_recomp
 
 $(foreach p,$(BUILD_PROGRAMS),$(eval $(call COMPILE,$(p))))
 

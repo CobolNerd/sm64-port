@@ -161,7 +161,6 @@ endef
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),distclean)
 $(BUILD_DIR)/level_rules.mk: levels/level_rules.mk levels/level_defines.h
-	@$(PRINT) "$(GREEN)Preprocessing level make rules: $(BLUE)$@ $(NO_COL)\n"
 	@$(CPP) $(VERSION_CFLAGS) -I . -o $@ $<
 include $(BUILD_DIR)/level_rules.mk
 endif
