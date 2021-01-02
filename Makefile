@@ -54,73 +54,124 @@ ifeq ($(TARGET_N64),0)
 VERSION ?= us
 $(eval $(call validate-option,VERSION,jp us eu sh))
 
-  ifeq ($(TARGET_WINDOWS),1)
-    # On Windows, default to DirectX 11
-    ifneq ($(ENABLE_OPENGL),1)
-      ifneq ($(ENABLE_DX12),1)
-        ENABLE_DX11 ?= 1
-      endif
-    endif
-  else
-    # On others, default to OpenGL
-    ENABLE_OPENGL ?= 1
-  endif
-
-  # Sanity checks
-  ifeq ($(ENABLE_DX11),1)
-    ifneq ($(TARGET_WINDOWS),1)
-      $(error The DirectX 11 backend is only supported on Windows)
-    endif
-    ifeq ($(ENABLE_OPENGL),1)
-      $(error Cannot specify multiple graphics backends)
-    endif
-    ifeq ($(ENABLE_DX12),1)
-      $(error Cannot specify multiple graphics backends)
+ifeq ($(TARGET_WINDOWS),1)
+  # On Windows, default to DirectX 11
+  ifneq ($(ENABLE_OPENGL),1)
+    ifneq ($(ENABLE_DX12),1)
+      ENABLE_DX11 ?= 1
     endif
   endif
-  ifeq ($(ENABLE_DX12),1)
-    ifneq ($(TARGET_WINDOWS),1)
-      $(error The DirectX 12 backend is only supported on Windows)
-    endif
-    ifeq ($(ENABLE_OPENGL),1)
-      $(error Cannot specify multiple graphics backends)
-    endif
-    ifeq ($(ENABLE_DX11),1)
-      $(error Cannot specify multiple graphics backends)
-    endif
-  endif
-
+else
+  # On others, default to OpenGL
+  ENABLE_OPENGL ?= 1
 endif
 
-ifeq ($(COMPILER),gcc)
+ifeq      ($(VERSION),jp)
+  DEFINES   += VERSION_JP=1
+  OPT_FLAGS := -g
+  GRUCODE   ?= f3d_old
+  VERSION_JP_US  ?= true
+else ifeq ($(VERSION),us)
+  DEFINES   += VERSION_US=1
+  OPT_FLAGS := -g
+  GRUCODE   ?= f3d_old
+  VERSION_JP_US  ?= true
+else ifeq ($(VERSION),eu)
+  DEFINES   += VERSION_EU=1
+  OPT_FLAGS := -O2
+  GRUCODE   ?= f3d_new
+  VERSION_JP_US  ?= false
+else ifeq ($(VERSION),sh)
+  DEFINES   += VERSION_SH=1
+  OPT_FLAGS := -O2
+  GRUCODE   ?= f3d_new
+  VERSION_JP_US  ?= false
+endif
+
+TARGET := sm64.$(VERSION)
+
+# Sanity checks
+ifeq ($(ENABLE_DX11),1)
+  ifneq ($(TARGET_WINDOWS),1)
+    $(error The DirectX 11 backend is only supported on Windows)
+  endif
+  ifeq ($(ENABLE_OPENGL),1)
+    $(error Cannot specify multiple graphics backends)
+  endif
+  ifeq ($(ENABLE_DX12),1)
+    $(error Cannot specify multiple graphics backends)
+  endif
+endif
+ifeq ($(ENABLE_DX12),1)
+  ifneq ($(TARGET_WINDOWS),1)
+    $(error The DirectX 12 backend is only supported on Windows)
+  endif
+  ifeq ($(ENABLE_OPENGL),1)
+    $(error Cannot specify multiple graphics backends)
+  endif
+  ifeq ($(ENABLE_DX11),1)
+    $(error Cannot specify multiple graphics backends)
+  endif
+endif
+
+# GRUCODE - selects which RSP microcode to use.
+#   f3d_old - default for JP and US versions
+#   f3d_new - default for EU and Shindou versions
+#   f3dex   -
+#   f3dex2  -
+#   f3dzex  - newer, experimental microcode used in Animal Crossing
+$(eval $(call validate-option,GRUCODE,f3d_old f3dex f3dex2 f3dex2e f3d_new f3dzex))
+
+ifeq      ($(GRUCODE),f3d_old)
+  DEFINES += F3D_OLD=1
+else ifeq ($(GRUCODE),f3d_new) # Fast3D 2.0H
+  DEFINES += F3D_NEW=1
+else ifeq ($(GRUCODE),f3dex) # Fast3DEX
+  DEFINES += F3DEX_GBI=1 F3DEX_GBI_SHARED=1
+else ifeq ($(GRUCODE), f3dex2) # Fast3DEX2
+  DEFINES += F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
+else ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mori)
+  $(warning Fast3DZEX is experimental. Try at your own risk.)
+  DEFINES += F3DZEX_GBI_2=1 F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
+endif
+
+
+# USE_QEMU_IRIX - when ido is selected, select which way to emulate IRIX programs
+#   1 - use qemu-irix
+#   0 - statically recompile the IRIX programs
+USE_QEMU_IRIX ?= 0
+$(eval $(call validate-option,USE_QEMU_IRIX,0 1))
+
+ifeq      ($(COMPILER),ido)
+  ifeq ($(USE_QEMU_IRIX),1)
+    # Verify that qemu-irix exists
+    QEMU_IRIX ?= $(call find-command,qemu-irix)
+    ifeq (, $(QEMU_IRIX))
+      $(error Using the IDO compiler requires qemu-irix. Please install qemu-irix package or set the QEMU_IRIX environment variable to the full qemu-irix binary path)
+    endif
+  endif
+
+  MIPSISET := -mips2
+else ifeq ($(COMPILER),gcc)
+  NON_MATCHING := 1
+  MIPSISET     := -mips3
+  OPT_FLAGS    := -O2
+endif
+
+
+# NON_MATCHING - whether to build a matching, identical copy of the ROM
+#   1 - enable some alternate, more portable code that does not produce a matching ROM
+#   0 - build a matching ROM
+NON_MATCHING ?= 0
+$(eval $(call validate-option,NON_MATCHING,0 1))
+
+ifeq ($(TARGET_N64),0)
   NON_MATCHING := 1
 endif
 
-# Release
-
-ifeq ($(VERSION),jp)
-  VERSION_DEF := VERSION_JP
-  GRUCODE_DEF := F3D_OLD
-else
-ifeq ($(VERSION),us)
-  VERSION_DEF := VERSION_US
-  GRUCODE_DEF := F3D_OLD
-else
-ifeq ($(VERSION),eu)
-  VERSION_DEF := VERSION_EU
-  GRUCODE_DEF := F3D_NEW
-else
-ifeq ($(VERSION),sh)
-  $(warning Building SH is experimental and is prone to breaking. Try at your own risk.)
-  VERSION_DEF := VERSION_SH
-  GRUCODE_DEF := F3D_NEW
-# TODO: GET RID OF THIS!!! We should mandate assets for Shindou like EU but we dont have the addresses extracted yet so we'll just pretend you have everything extracted for now.
-  NOEXTRACT := 1 
-else
-  $(error unknown version "$(VERSION)")
-endif
-endif
-endif
+ifeq ($(NON_MATCHING),1)
+  DEFINES += NON_MATCHING=1 AVOID_UB=1
+  COMPARE := 0
 endif
 
 TARGET := sm64.$(VERSION)
@@ -128,6 +179,11 @@ VERSION_CFLAGS := -D$(VERSION_DEF)
 VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
 
 # Microcode
+# COMPARE - whether to verify the SHA-1 hash of the ROM after building
+#   1 - verifies the SHA-1 hash of the selected version of the game
+#   0 - does not verify the hash
+COMPARE ?= 1
+$(eval $(call validate-option,COMPARE,0 1))
 
 ifeq ($(GRUCODE),f3dex) # Fast3DEX
   GRUCODE_DEF := F3DEX_GBI
@@ -149,6 +205,9 @@ else
 ifeq ($(GRUCODE),f3d_new) # Fast3D 2.0H (Shindou)
   GRUCODE_DEF := F3D_NEW
   TARGET := $(TARGET).f3d_new
+TARGET_STRING := sm64.$(VERSION).$(GRUCODE)
+# If non-default settings were chosen, disable COMPARE
+ifeq ($(filter $(TARGET_STRING), sm64.jp.f3d_old sm64.us.f3d_old sm64.eu.f3d_new sm64.sh.f3d_new),)
   COMPARE := 0
 else
 ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mori)
@@ -161,6 +220,11 @@ endif
 endif
 endif
 endif
+
+# Whether to hide commands or not
+VERBOSE ?= 0
+ifeq ($(VERBOSE),0)
+  V := @
 endif
 
 GRUCODE_CFLAGS := -D$(GRUCODE_DEF)
