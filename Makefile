@@ -1,16 +1,20 @@
 # Makefile to rebuild SM64 split image
 
-### Default target ###
+include util.mk
 
+# Default target
 default: all
 
-### Build Options ###
+# Preprocessor definitions
+DEFINES :=
 
-# These options can either be changed by modifying the makefile, or
-# by building with 'make SETTING=value'. 'make clean' may be required.
+#==============================================================================#
+# Build Options                                                                #
+#==============================================================================#
 
-# Version of the game to build
-VERSION ?= sh
+# These options can either be set by building with 'make SETTING=value'.
+# 'make clean' may be required first.
+
 # Graphics microcode used
 GRUCODE ?= f3d_old
 # If COMPARE is 1, check the output sha1sum when building 'all'
@@ -38,6 +42,13 @@ ifeq ($(TARGET_N64),0)
       TARGET_LINUX := 1
     endif
   endif
+# VERSION - selects the version of the game to build
+#   jp - builds the 1996 Japanese version
+#   us - builds the 1996 North American version
+#   eu - builds the 1997 PAL version
+#   sh - builds the 1997 Japanese Shindou version, with rumble pak support
+VERSION ?= us
+$(eval $(call validate-option,VERSION,jp us eu sh))
 
   ifeq ($(TARGET_WINDOWS),1)
     # On Windows, default to DirectX 11

@@ -1188,7 +1188,6 @@ void gdm_init(void *(*allocFn)(u32 size), void (*freeFn)(void *addr)) {
 void gdm_init(void *blockpool, u32 size) {
     UNUSED u32 pad;
 
-    add_to_stacktrace("gdm_init");
     imin("gdm_init");
     // Align downwards?
     size = (size - 8) & ~7;
