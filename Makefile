@@ -15,8 +15,6 @@ DEFINES :=
 # These options can either be set by building with 'make SETTING=value'.
 # 'make clean' may be required first.
 
-# Graphics microcode used
-GRUCODE ?= f3d_old
 # If COMPARE is 1, check the output sha1sum when building 'all'
 COMPARE ?= 1
 # If NON_MATCHING is 1, define the NON_MATCHING and AVOID_UB macros when building (recommended)
@@ -25,12 +23,18 @@ NON_MATCHING ?= 0
 TARGET_N64 ?= 0
 # Build for Emscripten/WebGL
 TARGET_WEB ?= 0
-# Compiler to use (ido or gcc)
-COMPILER ?= ido
+
+ifeq ($(TARGET_N64),1)
+  # COMPILER - selects the C compiler to use
+  #   ido - uses the SGI IRIS Development Option compiler, which is used to build
+  #         an original matching N64 ROM
+  #   gcc - uses the GNU C Compiler
+  COMPILER ?= ido
+  $(eval $(call validate-option,COMPILER,ido gcc))
+endif
 
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
-
   NON_MATCHING := 1
   GRUCODE := f3dex2e
   TARGET_WINDOWS := 0
