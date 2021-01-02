@@ -228,6 +228,8 @@ endif
 
 GRUCODE_CFLAGS := -D$(GRUCODE_DEF)
 GRUCODE_ASFLAGS := $(GRUCODE_ASFLAGS) --defsym $(GRUCODE_DEF)=1
+# Whether to colorize build messages
+COLOR ?= 1
 
 ifeq ($(NON_MATCHING),1)
   MATCH_CFLAGS := -DNON_MATCHING -DAVOID_UB
@@ -262,38 +264,38 @@ endif
 endif
 endif
 
-################ Target Executable and Sources ###############
 
-# BUILD_DIR is location where all build artifacts are placed
+#==============================================================================#
+# Target Executable and Sources                                                #
+#==============================================================================#
+
 BUILD_DIR_BASE := build
+# BUILD_DIR is the location where all build artifacts are placed
+ROM            := $(BUILD_DIR)/$(TARGET).z64
+ELF            := $(BUILD_DIR)/$(TARGET).elf
+LIBULTRA       := $(BUILD_DIR)/libultra.a
+LD_SCRIPT      := sm64.ld
+MIO0_DIR       := $(BUILD_DIR)/bin
+SOUND_BIN_DIR  := $(BUILD_DIR)/sound
+TEXTURE_DIR    := textures
+ACTOR_DIR      := actors
+LEVEL_DIRS     := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
+
 ifeq ($(TARGET_N64),1)
   BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)
-else
-ifeq ($(TARGET_WEB),1)
+else ifeq ($(TARGET_WEB),1)
   BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_web
 else
   BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_pc
 endif
-endif
 
-LIBULTRA := $(BUILD_DIR)/libultra.a
 ifeq ($(TARGET_WEB),1)
-EXE := $(BUILD_DIR)/$(TARGET).html
+  EXE := $(BUILD_DIR)/$(TARGET).html
+else ifeq ($(TARGET_WINDOWS),1)
+  EXE := $(BUILD_DIR)/$(TARGET).exe
 else
-ifeq ($(TARGET_WINDOWS),1)
-EXE := $(BUILD_DIR)/$(TARGET).exe
-else
-EXE := $(BUILD_DIR)/$(TARGET)
+  EXE := $(BUILD_DIR)/$(TARGET)
 endif
-endif
-ROM := $(BUILD_DIR)/$(TARGET).z64
-ELF := $(BUILD_DIR)/$(TARGET).elf
-LD_SCRIPT := sm64.ld
-MIO0_DIR := $(BUILD_DIR)/bin
-SOUND_BIN_DIR := $(BUILD_DIR)/sound
-TEXTURE_DIR := textures
-ACTOR_DIR := actors
-LEVEL_DIRS := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
 
 # Directories containing source files
 SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets
