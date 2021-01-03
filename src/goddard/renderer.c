@@ -1019,10 +1019,10 @@ void *gd_allocblock(u32 size) {
 #endif
 
 /* 24A318 -> 24A3E8 */
+void *gd_malloc(u32 size, u8 perm) {
 #ifdef USE_SYSTEM_MALLOC
     return sAllocFn(size);
 #else
-void *gd_malloc(u32 size, u8 perm) {
     void *ptr; // 1c
     size = ALIGN(size, 8);
     ptr = gd_request_mem(size, perm);
@@ -1177,7 +1177,7 @@ void gd_add_to_heap(void *addr, u32 size) {
 
 #ifdef USE_SYSTEM_MALLOC
 void gdm_init(void *(*allocFn)(u32 size), void (*freeFn)(void *addr)) {
-    add_to_stacktrace("gdm_init");
+    imin("gdm_init");
     sAllocFn = allocFn;
     sFreeFn = freeFn;
     gd_reset_sfx();
@@ -3239,8 +3239,8 @@ void gd_init(void) {
     UNUSED u32 pad30;
     s8 *data; // 2c
 
-#ifndef USE_SYSTEM_MALLOC
     imin("gd_init");
+#ifndef USE_SYSTEM_MALLOC
     i = (u32)(sMemBlockPoolSize - DOUBLE_SIZE_ON_64_BIT(0x3E800));
     data = gd_allocblock(i);
     gd_add_mem_to_heap(i, data, 0x10);
