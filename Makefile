@@ -352,144 +352,144 @@ INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
 ENDIAN_BITWIDTH := $(BUILD_DIR)/endian-and-bitwidth
 
 ifeq ($(TARGET_N64),1)
-  IRIX_ROOT := tools/ido5.3_compiler
+IRIX_ROOT := tools/ido5.3_compiler
 
-  ifeq ($(shell type mips-linux-gnu-ld >/dev/null 2>/dev/null; echo $$?), 0)
-    CROSS := mips-linux-gnu-
-  else ifeq ($(shell type mips64-linux-gnu-ld >/dev/null 2>/dev/null; echo $$?), 0)
-    CROSS := mips64-linux-gnu-
-  else
-    CROSS := mips64-elf-
-  endif
+ifeq ($(shell type mips-linux-gnu-ld >/dev/null 2>/dev/null; echo $$?), 0)
+  CROSS := mips-linux-gnu-
+else ifeq ($(shell type mips64-linux-gnu-ld >/dev/null 2>/dev/null; echo $$?), 0)
+  CROSS := mips64-linux-gnu-
+else
+  CROSS := mips64-elf-
+endif
 
-  # check that either QEMU_IRIX is set or qemu-irix package installed
-  ifeq ($(COMPILER),ido)
-    ifndef QEMU_IRIX
-      QEMU_IRIX := $(shell which qemu-irix 2>/dev/null)
-      ifeq (, $(QEMU_IRIX))
-        $(error Please install qemu-irix package or set QEMU_IRIX env var to the full qemu-irix binary path)
-      endif
+# check that either QEMU_IRIX is set or qemu-irix package installed
+ifeq ($(COMPILER),ido)
+  ifndef QEMU_IRIX
+    QEMU_IRIX := $(shell which qemu-irix 2>/dev/null)
+    ifeq (, $(QEMU_IRIX))
+      $(error Please install qemu-irix package or set QEMU_IRIX env var to the full qemu-irix binary path)
     endif
   endif
+endif
 
-  AS        := $(CROSS)as
-  CC        := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/bin/cc
-  CPP       := cpp -P -Wno-trigraphs
-  LD        := $(CROSS)ld
-  AR        := $(CROSS)ar
-  OBJDUMP   := $(CROSS)objdump
-  OBJCOPY   := $(CROSS)objcopy
-  PYTHON    := python3
+AS        := $(CROSS)as
+CC        := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/bin/cc
+CPP       := cpp -P -Wno-trigraphs
+LD        := $(CROSS)ld
+AR        := $(CROSS)ar
+OBJDUMP   := $(CROSS)objdump
+OBJCOPY   := $(CROSS)objcopy
+PYTHON    := python3
 
-  # change the compiler to gcc, to use the default, install the gcc-mips-linux-gnu package
-  ifeq ($(COMPILER),gcc)
-    CC        := $(CROSS)gcc
-  endif
+# change the compiler to gcc, to use the default, install the gcc-mips-linux-gnu package
+ifeq ($(COMPILER),gcc)
+  CC        := $(CROSS)gcc
+endif
 
-  ifeq ($(TARGET_N64),1)
-    TARGET_CFLAGS := -nostdinc -I include/libc -DTARGET_N64 -D_LANGUAGE_C
-    CC_CFLAGS := -fno-builtin
-  endif
+ifeq ($(TARGET_N64),1)
+  TARGET_CFLAGS := -nostdinc -I include/libc -DTARGET_N64 -D_LANGUAGE_C
+  CC_CFLAGS := -fno-builtin
+endif
 
-  INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
+INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
 
-  # Check code syntax with host compiler
-  CC_CHECK := gcc
-  CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) $(INCLUDE_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(VERSION_CFLAGS) $(GRUCODE_CFLAGS)
+# Check code syntax with host compiler
+CC_CHECK := gcc
+CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) $(INCLUDE_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(VERSION_CFLAGS) $(GRUCODE_CFLAGS)
 
-  COMMON_CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(INCLUDE_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(MIPSISET) $(GRUCODE_CFLAGS)
+COMMON_CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(INCLUDE_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(MIPSISET) $(GRUCODE_CFLAGS)
 
-  ASFLAGS := -march=vr4300 -mabi=32 -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS) $(MATCH_ASFLAGS) $(GRUCODE_ASFLAGS)
-  CFLAGS = -Wab,-r4300_mul -non_shared -G 0 -Xcpluscomm -Xfullwarn -signed $(COMMON_CFLAGS) $(MIPSBIT)
-  OBJCOPYFLAGS := --pad-to=0x800000 --gap-fill=0xFF
-  SYMBOL_LINKING_FLAGS := $(addprefix -R ,$(SEG_FILES))
-  LDFLAGS := -T undefined_syms.txt -T $(BUILD_DIR)/$(LD_SCRIPT) -Map $(BUILD_DIR)/sm64.$(VERSION).map --no-check-sections $(SYMBOL_LINKING_FLAGS)
-  ENDIAN_BITWIDTH := $(BUILD_DIR)/endian-and-bitwidth
+ASFLAGS := -march=vr4300 -mabi=32 -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS) $(MATCH_ASFLAGS) $(GRUCODE_ASFLAGS)
+CFLAGS = -Wab,-r4300_mul -non_shared -G 0 -Xcpluscomm -Xfullwarn -signed $(COMMON_CFLAGS) $(MIPSBIT)
+OBJCOPYFLAGS := --pad-to=0x800000 --gap-fill=0xFF
+SYMBOL_LINKING_FLAGS := $(addprefix -R ,$(SEG_FILES))
+LDFLAGS := -T undefined_syms.txt -T $(BUILD_DIR)/$(LD_SCRIPT) -Map $(BUILD_DIR)/sm64.$(VERSION).map --no-check-sections $(SYMBOL_LINKING_FLAGS)
+ENDIAN_BITWIDTH := $(BUILD_DIR)/endian-and-bitwidth
 
-  ifeq ($(COMPILER),gcc)
-    CFLAGS := -march=vr4300 -mfix4300 -mabi=32 -mno-shared -G 0 -mhard-float -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -I include -I src/ -I $(BUILD_DIR)/include -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra $(COMMON_CFLAGS)
-  endif
+ifeq ($(COMPILER),gcc)
+  CFLAGS := -march=vr4300 -mfix4300 -mabi=32 -mno-shared -G 0 -mhard-float -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -I include -I src/ -I $(BUILD_DIR)/include -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra $(COMMON_CFLAGS)
+endif
 
-  ifeq ($(shell getconf LONG_BIT), 32)
-    # Work around memory allocation bug in QEMU
-    export QEMU_GUEST_BASE := 1
-  else
-    # Ensure that gcc treats the code as 32-bit
-    CC_CHECK_CFLAGS += -m32
-  endif
+ifeq ($(shell getconf LONG_BIT), 32)
+  # Work around memory allocation bug in QEMU
+  export QEMU_GUEST_BASE := 1
+else
+  # Ensure that gcc treats the code as 32-bit
+  CC_CHECK_CFLAGS += -m32
+endif
 
-  # Prevent a crash with -sopt
-  export LANG := C
+# Prevent a crash with -sopt
+export LANG := C
 
 else # TARGET_N64
 
-  AS := as
-  ifneq ($(TARGET_WEB),1)
-    CC := gcc
-    CXX := g++
-  else
-    CC := emcc
-  endif
-  ifeq ($(TARGET_WINDOWS),1)
-    LD := $(CXX)
-  else
-    LD := $(CC)
-  endif
-  CPP := cpp -P
-  OBJDUMP := objdump
-  OBJCOPY := objcopy
-  PYTHON := python3
+AS := as
+ifneq ($(TARGET_WEB),1)
+  CC := gcc
+  CXX := g++
+else
+  CC := emcc
+endif
+ifeq ($(TARGET_WINDOWS),1)
+  LD := $(CXX)
+else
+  LD := $(CC)
+endif
+CPP := cpp -P
+OBJDUMP := objdump
+OBJCOPY := objcopy
+PYTHON := python3
 
-  # Platform-specific compiler and linker flags
+# Platform-specific compiler and linker flags
+ifeq ($(TARGET_WINDOWS),1)
+  PLATFORM_CFLAGS  := -DTARGET_WINDOWS
+  PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
+endif
+ifeq ($(TARGET_LINUX),1)
+  PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
+  PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
+endif
+ifeq ($(TARGET_WEB),1)
+  PLATFORM_CFLAGS  := -DTARGET_WEB
+  PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+endif
+
+PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+
+# Compiler and linker flags for graphics backend
+ifeq ($(ENABLE_OPENGL),1)
+  GFX_CFLAGS  := -DENABLE_OPENGL
+  GFX_LDFLAGS :=
   ifeq ($(TARGET_WINDOWS),1)
-    PLATFORM_CFLAGS  := -DTARGET_WINDOWS
-    PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
+    GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
+    GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
   endif
   ifeq ($(TARGET_LINUX),1)
-    PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
-    PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
+    GFX_CFLAGS  += $(shell sdl2-config --cflags)
+    GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
   endif
   ifeq ($(TARGET_WEB),1)
-    PLATFORM_CFLAGS  := -DTARGET_WEB
-    PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+    GFX_CFLAGS  += -s USE_SDL=2
+    GFX_LDFLAGS += -lGL -lSDL2
   endif
+endif
+ifeq ($(ENABLE_DX11),1)
+  GFX_CFLAGS := -DENABLE_DX11
+  PLATFORM_LDFLAGS += -lgdi32 -static
+endif
+ifeq ($(ENABLE_DX12),1)
+  GFX_CFLAGS := -DENABLE_DX12
+  PLATFORM_LDFLAGS += -lgdi32 -static
+endif
 
-  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+GFX_CFLAGS += -DWIDESCREEN
 
-  # Compiler and linker flags for graphics backend
-  ifeq ($(ENABLE_OPENGL),1)
-    GFX_CFLAGS  := -DENABLE_OPENGL
-    GFX_LDFLAGS :=
-    ifeq ($(TARGET_WINDOWS),1)
-      GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
-      GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
-    endif
-    ifeq ($(TARGET_LINUX),1)
-      GFX_CFLAGS  += $(shell sdl2-config --cflags)
-      GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
-    endif
-    ifeq ($(TARGET_WEB),1)
-      GFX_CFLAGS  += -s USE_SDL=2
-      GFX_LDFLAGS += -lGL -lSDL2
-    endif
-  endif
-  ifeq ($(ENABLE_DX11),1)
-    GFX_CFLAGS := -DENABLE_DX11
-    PLATFORM_LDFLAGS += -lgdi32 -static
-  endif
-  ifeq ($(ENABLE_DX12),1)
-    GFX_CFLAGS := -DENABLE_DX12
-    PLATFORM_LDFLAGS += -lgdi32 -static
-  endif
+CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+CFLAGS := $(OPT_FLAGS) $(INCLUDE_CFLAGS) -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
 
-  GFX_CFLAGS += -DWIDESCREEN
+ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
 
-  CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
-  CFLAGS := $(OPT_FLAGS) $(INCLUDE_CFLAGS) -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
-
-  ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
-
-  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
+LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 
 endif
 
@@ -800,29 +800,29 @@ $(BUILD_DIR)/%.o: %.s
 	$(AS) $(ASFLAGS) -MD $(BUILD_DIR)/$*.d -o $@ $<
 
 ifeq ($(TARGET_N64),1)
-  $(BUILD_DIR)/$(LD_SCRIPT): $(LD_SCRIPT)
-    $(CPP) $(VERSION_CFLAGS) -MMD -MP -MT $@ -MF $@.d -I include/ -I . -DBUILD_DIR=$(BUILD_DIR) -o $@ $<
+$(BUILD_DIR)/$(LD_SCRIPT): $(LD_SCRIPT)
+	$(CPP) $(VERSION_CFLAGS) -MMD -MP -MT $@ -MF $@.d -I include/ -I . -DBUILD_DIR=$(BUILD_DIR) -o $@ $<
 
-  $(BUILD_DIR)/libultra.a: $(ULTRA_O_FILES)
-    $(AR) rcs -o $@ $(ULTRA_O_FILES)
-    tools/patch_libultra_math $@
+$(BUILD_DIR)/libultra.a: $(ULTRA_O_FILES)
+	$(AR) rcs -o $@ $(ULTRA_O_FILES)
+	tools/patch_libultra_math $@
 
-  $(BUILD_DIR)/libgoddard.a: $(GODDARD_O_FILES)
-    $(AR) rcs -o $@ $(GODDARD_O_FILES)
+$(BUILD_DIR)/libgoddard.a: $(GODDARD_O_FILES)
+	$(AR) rcs -o $@ $(GODDARD_O_FILES)
 
-  $(ELF): $(O_FILES) $(MIO0_OBJ_FILES) $(SOUND_OBJ_FILES) $(SEG_FILES) $(BUILD_DIR)/$(LD_SCRIPT) undefined_syms.txt $(BUILD_DIR)/libultra.a $(BUILD_DIR)/libgoddard.a
-    $(LD) -L $(BUILD_DIR) $(LDFLAGS) -o $@ $(O_FILES)$(LIBS) -lultra -lgoddard
+$(ELF): $(O_FILES) $(MIO0_OBJ_FILES) $(SOUND_OBJ_FILES) $(SEG_FILES) $(BUILD_DIR)/$(LD_SCRIPT) undefined_syms.txt $(BUILD_DIR)/libultra.a $(BUILD_DIR)/libgoddard.a
+	$(LD) -L $(BUILD_DIR) $(LDFLAGS) -o $@ $(O_FILES)$(LIBS) -lultra -lgoddard
 
-  $(ROM): $(ELF)
-    $(OBJCOPY) $(OBJCOPYFLAGS) $< $(@:.z64=.bin) -O binary
-    $(N64CKSUM) $(@:.z64=.bin) $@
+$(ROM): $(ELF)
+	$(OBJCOPY) $(OBJCOPYFLAGS) $< $(@:.z64=.bin) -O binary
+	$(N64CKSUM) $(@:.z64=.bin) $@
 
-  $(BUILD_DIR)/$(TARGET).objdump: $(ELF)
-    $(OBJDUMP) -D $< > $@
+$(BUILD_DIR)/$(TARGET).objdump: $(ELF)
+	$(OBJDUMP) -D $< > $@
 
 else
-  $(EXE): $(O_FILES) $(MIO0_FILES:.mio0=.o) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES)
-    $(LD) -L $(BUILD_DIR) -o $@ $(O_FILES) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(LDFLAGS)
+$(EXE): $(O_FILES) $(MIO0_FILES:.mio0=.o) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES)
+	$(LD) -L $(BUILD_DIR) -o $@ $(O_FILES) $(SOUND_OBJ_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(LDFLAGS)
 endif
 
 
