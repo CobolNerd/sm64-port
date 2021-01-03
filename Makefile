@@ -18,7 +18,7 @@ DEFINES :=
 # If COMPARE is 1, check the output sha1sum when building 'all'
 COMPARE ?= 1
 # If NON_MATCHING is 1, define the NON_MATCHING and AVOID_UB macros when building (recommended)
-NON_MATCHING ?= 0
+NON_MATCHING ?= 1
 # Build for the N64 (turn this off for ports)
 TARGET_N64 ?= 0
 # Build for Emscripten/WebGL
@@ -88,7 +88,34 @@ else ifeq ($(VERSION),sh)
   VERSION_JP_US  ?= false
 endif
 
+ifeq ($(COMPILER),gcc)
+  NON_MATCHING := 1
+endif
+
+# Release
+
+ifeq ($(VERSION),jp)
+  VERSION_DEF := VERSION_JP
+  GRUCODE_DEF := F3D_OLD
+else ifeq ($(VERSION),us)
+  VERSION_DEF := VERSION_US
+  GRUCODE_DEF := F3D_OLD
+else ifeq ($(VERSION),eu)
+  VERSION_DEF := VERSION_EU
+  GRUCODE_DEF := F3D_NEW
+else ifeq ($(VERSION),sh)
+  $(warning Building SH is experimental and is prone to breaking. Try at your own risk.)
+  VERSION_DEF := VERSION_SH
+  GRUCODE_DEF := F3D_NEW
+# TODO: GET RID OF THIS!!! We should mandate assets for Shindou like EU but we dont have the addresses extracted yet so we'll just pretend you have everything extracted for now.
+  NOEXTRACT := 1 
+else
+  $(error unknown version "$(VERSION)")
+endif
+
 TARGET := sm64.$(VERSION)
+VERSION_CFLAGS := -D$(VERSION_DEF)
+VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
 
 # Sanity checks
 ifeq ($(ENABLE_DX11),1)
@@ -157,6 +184,7 @@ else ifeq ($(COMPILER),gcc)
   MIPSISET     := -mips3
   OPT_FLAGS    := -O2
 endif
+endif
 
 
 # NON_MATCHING - whether to build a matching, identical copy of the ROM
@@ -174,10 +202,6 @@ ifeq ($(NON_MATCHING),1)
   COMPARE := 0
 endif
 
-VERSION_CFLAGS := -D$(VERSION_DEF)
-VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
-
-# Microcode
 # COMPARE - whether to verify the SHA-1 hash of the ROM after building
 #   1 - verifies the SHA-1 hash of the selected version of the game
 #   0 - does not verify the hash
@@ -237,7 +261,31 @@ ifeq ($(NON_MATCHING),1)
   COMPARE := 0
 endif
 
-################### Universal Dependencies ###################
+# display selected options unless 'make clean' or 'make distclean' is run
+ifeq ($(filter clean distclean,$/(MAKECMDGOALS)),)
+  $(info ==== Build Options ====)
+  $(info Version:        $(VERSION))
+  $(info Microcode:      $(GRUCODE))
+  $(info Target:         $(TARGET))
+  ifeq ($(COMPARE),1)
+    $(info Compare ROM:    yes)
+  else
+    $(info Compare ROM:    no)
+  endif
+  ifeq ($(NON_MATCHING),1)
+    $(info Build Matching: no)
+  else
+    $(info Build Matching: yes)
+  endif
+  $(info =======================)
+endif
+
+
+#==============================================================================#
+# Universal Dependencies                                                       #
+#==============================================================================#
+
+TOOLS_DIR := tools
 
 # (This is a bit hacky, but a lot of rules implicitly depend
 # on tools and assets, and we use directory globs further down
@@ -761,6 +809,7 @@ $(SOUND_BIN_DIR)/sound_data.tbl: $(SOUND_BIN_DIR)/sound_data.ctl
 	@true
 
 $(SOUND_BIN_DIR)/sequences.bin: $(SOUND_BANK_FILES) sound/sequences.json $(SOUND_SEQUENCE_DIRS) $(SOUND_SEQUENCE_FILES) $(ENDIAN_BITWIDTH)
+	@$(PRINT) "$(GREEN)Generating:  $(BLUE)$@ $(NO_COL)\n"
 	$(V)$(PYTHON) $(TOOLS_DIR)/assemble_sound.py --sequences $@ $(SOUND_BIN_DIR)/sequences_header $(SOUND_BIN_DIR)/bank_sets sound/sound_banks/ sound/sequences.json $(SOUND_SEQUENCE_FILES) $(C_DEFINES) $$(cat $(ENDIAN_BITWIDTH))
 
 $(SOUND_BIN_DIR)/bank_sets: $(SOUND_BIN_DIR)/sequences.bin
