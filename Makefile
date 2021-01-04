@@ -4,13 +4,46 @@
 
 default: all
 
+# Preprocessor definitions
+DEFINES :=
+
 ### Build Options ###
 
 # These options can either be changed by modifying the makefile, or
 # by building with 'make SETTING=value'. 'make clean' may be required.
 
-# Version of the game to build
+# VERSION - selects the version of the game to build
+#   jp - builds the 1996 Japanese version
+#   us - builds the 1996 North American version
+#   eu - builds the 1997 PAL version
+#   sh - builds the 1997 Japanese Shindou version, with rumble pak support
 VERSION ?= sh
+$(eval $(call validate-option,VERSION,jp us eu sh))
+
+ifeq      ($(VERSION),jp)
+  DEFINES   += VERSION_JP=1
+  OPT_FLAGS := -g
+  GRUCODE   ?= f3d_old
+  VERSION_JP_US  ?= true
+else ifeq ($(VERSION),us)
+  DEFINES   += VERSION_US=1
+  OPT_FLAGS := -g
+  GRUCODE   ?= f3d_old
+  VERSION_JP_US  ?= true
+else ifeq ($(VERSION),eu)
+  DEFINES   += VERSION_EU=1
+  OPT_FLAGS := -O2
+  GRUCODE   ?= f3d_new
+  VERSION_JP_US  ?= false
+else ifeq ($(VERSION),sh)
+  DEFINES   += VERSION_SH=1
+  OPT_FLAGS := -O2
+  GRUCODE   ?= f3d_new
+  VERSION_JP_US  ?= false
+endif
+
+TARGET := sm64.$(VERSION)
+
 # Graphics microcode used
 GRUCODE ?= f3d_old
 # If COMPARE is 1, check the output sha1sum when building 'all'
@@ -507,6 +540,8 @@ ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
 LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 
 endif
+
+C_DEFINES := $(foreach d,$(DEFINES),-D$(d)) 
 
 ####################### Other Tools #########################
 

@@ -52,6 +52,8 @@ LIBAUDIOFILE := audiofile/libaudiofile.a
 $(LIBAUDIOFILE):
 	@$(MAKE) -C audiofile
 
+all-except-recomp: $(LIBAUDIOFILE) $(BUILD_PROGRAMS)
+
 all: $(LIBAUDIOFILE) $(PROGRAMS) $(CXX_PROGRAMS)
 
 clean:
