@@ -613,6 +613,7 @@ $(BUILD_DIR)/asm/boot.o: $(IPL3_RAW_FILES)
 $(BUILD_DIR)/src/game/crash_screen.o: $(CRASH_TEXTURE_C_FILES)
 
 $(BUILD_DIR)/lib/rsp.o: $(BUILD_DIR)/rsp/rspboot.bin $(BUILD_DIR)/rsp/fast3d.bin $(BUILD_DIR)/rsp/audio.bin
+$(SOUND_BIN_DIR)/sound_data.o:        $(SOUND_BIN_DIR)/sound_data.ctl.inc.c $(SOUND_BIN_DIR)/sound_data.tbl.inc.c $(SOUND_BIN_DIR)/sequences.bin.inc.c $(SOUND_BIN_DIR)/bank_sets.inc.c
 
 ifeq ($(VERSION),sh)
   $(BUILD_DIR)/src/audio/load.o: $(SOUND_BIN_DIR)/bank_sets.inc.c $(SOUND_BIN_DIR)/sequences_header.inc.c $(SOUND_BIN_DIR)/ctl_header.inc.c $(SOUND_BIN_DIR)/tbl_header.inc.c
@@ -678,9 +679,9 @@ $(BUILD_DIR)/src/game/ingame_menu.o: $(BUILD_DIR)/include/text_strings.h
 $(BUILD_DIR)/%: %.png
 	$(N64GRAPHICS) -i $@ -g $< -f $(lastword $(subst ., ,$@))
 
-$(BUILD_DIR)/%.inc.c: $(BUILD_DIR)/% %.png
-	hexdump -v -e '1/1 "0x%X,"' $< > $@
-	echo >> $@
+$(BUILD_DIR)/%.inc.c: %.png
+	$(call print,Converting:,$<,$@)
+	$(V)$(N64GRAPHICS) -s $(TEXTURE_ENCODING) -i $@ -g $< -f $(lastword ,$(subst ., ,$(basename $<)))
 
 # Color Index CI8
 $(BUILD_DIR)/%.ci8: %.ci8.png
@@ -779,16 +780,16 @@ $(SOUND_BIN_DIR)/%.m64: $(SOUND_BIN_DIR)/%.o
 $(SOUND_BIN_DIR)/%.o: $(SOUND_BIN_DIR)/%.s
 	$(AS) $(ASFLAGS) -o $@ $<
 
-$(SOUND_BIN_DIR)/%.inc.c: $(SOUND_BIN_DIR)/%
-	hexdump -v -e '1/1 "0x%X,"' $< > $@
-	echo >> $@
-
-$(SOUND_BIN_DIR)/sound_data.o:        $(SOUND_BIN_DIR)/sound_data.ctl.inc.c $(SOUND_BIN_DIR)/sound_data.tbl.inc.c $(SOUND_BIN_DIR)/sequences.bin.inc.c $(SOUND_BIN_DIR)/bank_sets.inc.c
 
 $(BUILD_DIR)/levels/scripts.o: $(BUILD_DIR)/include/level_headers.h
 
 $(BUILD_DIR)/include/level_headers.h: levels/level_headers.h.in
 	$(CPP) -I . levels/level_headers.h.in | $(PYTHON) tools/output_level_headers.py > $(BUILD_DIR)/include/level_headers.h
+# Convert binary file to a comma-separated list of byte values for inclusion in C code
+$(BUILD_DIR)/%.inc.c: $(BUILD_DIR)/%
+	$(call print,Piping:,$<,$@)
+	$(V)hexdump -v -e '1/1 "0x%X,"' $< > $@
+	$(V)echo >> $@
 
 $(BUILD_DIR)/assets/mario_anim_data.c: $(wildcard assets/anims/*.inc.c)
 	$(PYTHON) tools/mario_anims_converter.py > $@
