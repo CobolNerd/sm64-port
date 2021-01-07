@@ -5,6 +5,11 @@
 #include <emscripten/html5.h>
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <stdio.h>
+#include <fcntl.h>
+#endif
+
 #include "sm64.h"
 
 #include "game/memory.h"
@@ -67,8 +72,6 @@ void send_display_list(struct SPTask *spTask) {
     }
     gfx_run((Gfx *)spTask->task.t.data_ptr);
 }
-
-#define printf
 
 #ifdef VERSION_EU
 #define SAMPLES_HIGH 656
@@ -225,9 +228,29 @@ void main_func(void) {
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 int WINAPI WinMain(UNUSED HINSTANCE hInstance, UNUSED HINSTANCE hPrevInstance, UNUSED LPSTR pCmdLine, UNUSED int nCmdShow) {
+    SetStdOutToNewConsole();
     main_func();
     return 0;
 }
+
+void SetStdOutToNewConsole()
+{
+    int hConHandle;
+    long lStdHandle;
+    FILE *fp;
+     
+    //Allocate a console for this app
+    AllocConsole();
+
+    // Redirect unbuffered STDOUT to the console
+    lStdHandle = (long)GetStdHandle(STD_OUTPUT_HANDLE);
+    hConHandle = _open_osfhandle(lStdHandle, _O_TEXT);
+    fp = _fdopen(hConHandle, "w");
+    *stdout = *fp;
+
+    setvbuf(stdout, NULL, _IONBF, 0);
+}
+
 #else
 int main(UNUSED int argc, UNUSED char *argv[]) {
     main_func();
