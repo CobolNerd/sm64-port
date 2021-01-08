@@ -365,7 +365,16 @@ void play_transition_after_delay(s16 transType, s16 time, u8 red, u8 green, u8 b
 }
 
 void render_game(void) {
+    printf("DEBUGRR: render_game - START\n");
+    printf("DEBUGRR: gWarpTransition.pauseRendering: %d\n", gWarpTransition.pauseRendering);
+
+    if (gCurrentArea != NULL) {
+        printf("DEBUGRR: gCurrentArea->index - %d\n", gCurrentArea->index);
+    }
+    
     if (gCurrentArea != NULL && !gWarpTransition.pauseRendering) {
+        printf("DEBUGRR: render_game - gCurrentArea != NULL && !gWarpTransition.pauseRendering - START\n");
+
         geo_process_root(gCurrentArea->unk04, D_8032CE74, D_8032CE78, gFBSetColor);
 
         gSPViewport(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(&D_8032CF00));
@@ -407,6 +416,7 @@ void render_game(void) {
                 gWarpTransDelay--;
             }
         }
+        printf("DEBUGRR: render_game - gCurrentArea != NULL && !gWarpTransition.pauseRendering - END\n");
     } else {
         render_text_labels();
         if (D_8032CE78 != NULL) {
@@ -418,4 +428,6 @@ void render_game(void) {
 
     D_8032CE74 = NULL;
     D_8032CE78 = NULL;
+
+    printf("DEBUGRR: render_game - END\n");
 }

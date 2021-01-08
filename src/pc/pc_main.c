@@ -82,6 +82,8 @@ void send_display_list(struct SPTask *spTask) {
 #endif
 
 void produce_one_frame(void) {
+    printf("DEBUGRR: produce_one_frame - START\n");
+
     gfx_start_frame();
     game_loop_one_iteration();
     
@@ -100,6 +102,8 @@ void produce_one_frame(void) {
     audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
     
     gfx_end_frame();
+
+    printf("DEBUGRR: produce_one_frame - END\n");
 }
 
 #ifdef TARGET_WEB
@@ -228,7 +232,7 @@ void main_func(void) {
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 int WINAPI WinMain(UNUSED HINSTANCE hInstance, UNUSED HINSTANCE hPrevInstance, UNUSED LPSTR pCmdLine, UNUSED int nCmdShow) {
-    SetStdOutToNewConsole();
+    //SetStdOutToNewConsole();
     main_func();
     return 0;
 }

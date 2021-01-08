@@ -180,18 +180,26 @@ static void level_cmd_jump_repeat(void) {
 }
 
 static void level_cmd_loop_begin(void) {
+    printf("DEBUGRR: level_cmd_loop_begin - START\n");
+
     *sStackTop++ = (uintptr_t) NEXT_CMD;
     *sStackTop++ = 0;
     sCurrentCmd = CMD_NEXT;
+
+    printf("DEBUGRR: level_cmd_loop_begin - END\n");
 }
 
 static void level_cmd_loop_until(void) {
+    printf("DEBUGRR: level_cmd_loop_until - START\n");
+
     if (eval_script_op(CMD_GET(u8, 2), CMD_GET(s32, 4)) != 0) {
         sCurrentCmd = CMD_NEXT;
         sStackTop -= 2;
     } else {
         sCurrentCmd = (struct LevelCommand *) *(sStackTop - 2);
     }
+
+    printf("DEBUGRR: level_cmd_loop_until - END\n");
 }
 
 static void level_cmd_jump_if(void) {
@@ -234,13 +242,18 @@ static void level_cmd_skippable_nop(void) {
 }
 
 static void level_cmd_call(void) {
+    printf("DEBUGRR: level_cmd_call - START\n");
+
     typedef s32 (*Func)(s16, s32);
     Func func = CMD_GET(Func, 4);
     sRegister = func(CMD_GET(s16, 2), sRegister);
     sCurrentCmd = CMD_NEXT;
+
+    printf("DEBUGRR: level_cmd_call - END\n");
 }
 
 static void level_cmd_call_loop(void) {
+    printf("DEBUGRR: level_cmd_call_loop - START\n");
     typedef s32 (*Func)(s16, s32);
     Func func = CMD_GET(Func, 4);
     sRegister = func(CMD_GET(s16, 2), sRegister);
@@ -251,6 +264,7 @@ static void level_cmd_call_loop(void) {
         sScriptStatus = SCRIPT_RUNNING;
         sCurrentCmd = CMD_NEXT;
     }
+    printf("DEBUGRR: level_cmd_call_loop - END\n");
 }
 
 static void level_cmd_set_register(void) {
@@ -544,6 +558,8 @@ static void level_cmd_set_terrain_type(void) {
 }
 
 static void level_cmd_create_painting_warp_node(void) {
+    printf("level_cmd_create_painting_warp_node");
+
     s32 i;
     struct WarpNode *node;
 
@@ -846,18 +862,32 @@ static void (*LevelScriptJumpTable[])(void) = {
 };
 
 struct LevelCommand *level_script_execute(struct LevelCommand *cmd) {
+    if (sCurrentCmd != NULL) {
+        printf("DEBUGRR: level_script_execute - current sCurrentCmd->ty6pe: %x\n", sCurrentCmd->type);        
+    }
+    printf("DEBUGRR: level_script_execute - new sCurrentCmd->type: %x\n", cmd->type);        
+    printf("DEBUGRR: level_script_execute - sScriptStatus: %x\n", sScriptStatus);
+
     sScriptStatus = SCRIPT_RUNNING;
     sCurrentCmd = cmd;
 
     while (sScriptStatus == SCRIPT_RUNNING) {
+        printf("DEBUGRR: level_script_execute - sScriptStatus in loop: %d\n", sScriptStatus);
+        if (sCurrentCmd != NULL) {
+            printf("DEBUGRR: level_script_execute - in loop - current sCurrentCmd->type: %d\n", sCurrentCmd->type);        
+        }
         LevelScriptJumpTable[sCurrentCmd->type]();
     }
+
+    printf("DEBUGRR: level_script_execute - sScriptStatus after loop: %d\n", sScriptStatus);
 
     profiler_log_thread5_time(LEVEL_SCRIPT_EXECUTE);
     init_render_image();
     render_game();
     end_master_display_list();
     alloc_display_list(0);
+        
+    printf("DEBUGRR: level_script_execute - END\n");
 
     return sCurrentCmd;
 }
