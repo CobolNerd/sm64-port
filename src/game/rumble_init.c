@@ -27,9 +27,9 @@ s32 sRumblePakErrorCount = 0;
 s32 gRumblePakTimer = 0;
 
 // These void* are OSPfs* but we don't have that header
-extern s32 osMotorStop(void *);
-extern s32 osMotorStart(void *);
-extern u32 osMotorInit(OSMesgQueue *, void *, s32);
+//extern s32 osMotorStop(void *);
+//extern s32 osMotorStart(void *);
+//extern u32 osMotorInit(OSMesgQueue *, void *, s32);
 
 void init_rumble_pak_scheduler_queue(void) {
     osCreateMesgQueue(&gRumblePakSchedulerMesgQueue, gRumblePakSchedulerMesgBuf, 1);
@@ -50,15 +50,15 @@ static void start_rumble(void) {
         return;
     }
 
-    block_until_rumble_pak_free();
+    // block_until_rumble_pak_free();
 
-    if (!osMotorStart(&gRumblePakPfs)) {
-        sRumblePakErrorCount = 0;
-    } else {
-        sRumblePakErrorCount++;
-    }
+    // if (!osMotorStart(&gRumblePakPfs)) {
+    //     sRumblePakErrorCount = 0;
+    // } else {
+    //     sRumblePakErrorCount++;
+    // }
 
-    release_rumble_pak_control();
+    // release_rumble_pak_control();
 }
 
 static void stop_rumble(void) {
@@ -68,58 +68,58 @@ static void stop_rumble(void) {
 
     block_until_rumble_pak_free();
 
-    if (!osMotorStop(&gRumblePakPfs)) {
-        sRumblePakErrorCount = 0;
-    } else {
-        sRumblePakErrorCount++;
-    }
+    // if (!osMotorStop(&gRumblePakPfs)) {
+    //     sRumblePakErrorCount = 0;
+    // } else {
+    //     sRumblePakErrorCount++;
+    // }
 
-    release_rumble_pak_control();
+    // release_rumble_pak_control();
 }
 
 static void update_rumble_pak(void) {
-    if (gResetTimer > 0) {
-        stop_rumble();
-        return;
-    }
+    // if (gResetTimer > 0) {
+    //     stop_rumble();
+    //     return;
+    // }
 
-    if (gCurrRumbleSettings.unk08 > 0) {
-        gCurrRumbleSettings.unk08--;
-        start_rumble();
-    } else if (gCurrRumbleSettings.unk04 > 0) {
-        gCurrRumbleSettings.unk04--;
+    // if (gCurrRumbleSettings.unk08 > 0) {
+    //     gCurrRumbleSettings.unk08--;
+    //     start_rumble();
+    // } else if (gCurrRumbleSettings.unk04 > 0) {
+    //     gCurrRumbleSettings.unk04--;
 
-        gCurrRumbleSettings.unk02 -= gCurrRumbleSettings.unk0E;
-        if (gCurrRumbleSettings.unk02 < 0) {
-            gCurrRumbleSettings.unk02 = 0;
-        }
+    //     gCurrRumbleSettings.unk02 -= gCurrRumbleSettings.unk0E;
+    //     if (gCurrRumbleSettings.unk02 < 0) {
+    //         gCurrRumbleSettings.unk02 = 0;
+    //     }
 
-        if (gCurrRumbleSettings.unk00 == 1) {
-            start_rumble();
-        } else if (gCurrRumbleSettings.unk06 >= 0x100) {
-            gCurrRumbleSettings.unk06 -= 0x100;
-            start_rumble();
-        } else {
-            gCurrRumbleSettings.unk06 +=
-                ((gCurrRumbleSettings.unk02 * gCurrRumbleSettings.unk02 * gCurrRumbleSettings.unk02) / (1 << 9)) + 4;
+    //     if (gCurrRumbleSettings.unk00 == 1) {
+    //         start_rumble();
+    //     } else if (gCurrRumbleSettings.unk06 >= 0x100) {
+    //         gCurrRumbleSettings.unk06 -= 0x100;
+    //         start_rumble();
+    //     } else {
+    //         gCurrRumbleSettings.unk06 +=
+    //             ((gCurrRumbleSettings.unk02 * gCurrRumbleSettings.unk02 * gCurrRumbleSettings.unk02) / (1 << 9)) + 4;
 
-            stop_rumble();
-        }
-    } else {
-        gCurrRumbleSettings.unk04 = 0;
+    //         stop_rumble();
+    //     }
+    // } else {
+    //     gCurrRumbleSettings.unk04 = 0;
 
-        if (gCurrRumbleSettings.unk0A >= 5) {
-            start_rumble();
-        } else if ((gCurrRumbleSettings.unk0A >= 2) && (gNumVblanks % gCurrRumbleSettings.unk0C == 0)) {
-            start_rumble();
-        } else {
-            stop_rumble();
-        }
-    }
+    //     if (gCurrRumbleSettings.unk0A >= 5) {
+    //         start_rumble();
+    //     } else if ((gCurrRumbleSettings.unk0A >= 2) && (gNumVblanks % gCurrRumbleSettings.unk0C == 0)) {
+    //         start_rumble();
+    //     } else {
+    //         stop_rumble();
+    //     }
+    // }
 
-    if (gCurrRumbleSettings.unk0A > 0) {
-        gCurrRumbleSettings.unk0A--;
-    }
+    // if (gCurrRumbleSettings.unk0A > 0) {
+    //     gCurrRumbleSettings.unk0A--;
+    // }
 }
 
 static void update_rumble_data_queue(void) {
@@ -238,55 +238,55 @@ void func_sh_8024CA04(void) {
 }
 
 static void thread6_rumble_loop(UNUSED void *a0) {
-    OSMesg msg;
+    // OSMesg msg;
 
-    cancel_rumble();
+    // cancel_rumble();
 
-    sRumblePakThreadActive = TRUE;
+    // sRumblePakThreadActive = TRUE;
 
-    while (TRUE) {
-        // Block until VI
-        osRecvMesg(&gRumbleThreadVIMesgQueue, &msg, OS_MESG_BLOCK);
+    // while (TRUE) {
+    //     // Block until VI
+    //     osRecvMesg(&gRumbleThreadVIMesgQueue, &msg, OS_MESG_BLOCK);
 
-        update_rumble_data_queue();
-        update_rumble_pak();
+    //     update_rumble_data_queue();
+    //     update_rumble_pak();
 
-        if (sRumblePakActive) {
-            if (sRumblePakErrorCount >= 30) {
-                sRumblePakActive = FALSE;
-            }
-        } else if (gNumVblanks % 60 == 0) {
-            sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
-            sRumblePakErrorCount = 0;
-        }
+    //     if (sRumblePakActive) {
+    //         if (sRumblePakErrorCount >= 30) {
+    //             sRumblePakActive = FALSE;
+    //         }
+    //     } else if (gNumVblanks % 60 == 0) {
+    //         sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
+    //         sRumblePakErrorCount = 0;
+    //     }
 
-        if (gRumblePakTimer > 0) {
-            gRumblePakTimer--;
-        }
-    }
+    //     if (gRumblePakTimer > 0) {
+    //         gRumblePakTimer--;
+    //     }
+    // }
 }
 
 void cancel_rumble(void) {
-    sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
+    // sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
 
-    if (sRumblePakActive) {
-        osMotorStop(&gRumblePakPfs);
-    }
+    // if (sRumblePakActive) {
+    //     osMotorStop(&gRumblePakPfs);
+    // }
 
-    gRumbleDataQueue[0].unk00 = 0;
-    gRumbleDataQueue[1].unk00 = 0;
-    gRumbleDataQueue[2].unk00 = 0;
+    // gRumbleDataQueue[0].unk00 = 0;
+    // gRumbleDataQueue[1].unk00 = 0;
+    // gRumbleDataQueue[2].unk00 = 0;
 
-    gCurrRumbleSettings.unk04 = 0;
-    gCurrRumbleSettings.unk0A = 0;
+    // gCurrRumbleSettings.unk04 = 0;
+    // gCurrRumbleSettings.unk0A = 0;
 
-    gRumblePakTimer = 0;
+    // gRumblePakTimer = 0;
 }
 
 void create_thread_6(void) {
     osCreateMesgQueue(&gRumbleThreadVIMesgQueue, gRumbleThreadVIMesgBuf, 1);
-    osCreateThread(&gRumblePakThread, 6, thread6_rumble_loop, NULL, gThread6Stack + 0x2000, 30);
-    osStartThread(&gRumblePakThread);
+    // osCreateThread(&gRumblePakThread, 6, thread6_rumble_loop, NULL, gThread6Stack + 0x2000, 30);
+    // osStartThread(&gRumblePakThread);
 }
 
 void rumble_thread_update_vi(void) {

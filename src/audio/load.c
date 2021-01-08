@@ -1256,10 +1256,10 @@ s32 func_sh_802f3dd0(OSIoMesg *m, s32 pri, s32 direction, uintptr_t devAddr, voi
     }
     switch (medium) {
         case 2:
-            handle = osCartRomInit();
+            //handle = osCartRomInit();
             break;
         case 3:
-            handle = osDriveRomInit();
+            //handle = osDriveRomInit();
             break;
         default:
             return 0;
@@ -1273,7 +1273,7 @@ s32 func_sh_802f3dd0(OSIoMesg *m, s32 pri, s32 direction, uintptr_t devAddr, voi
     m->devAddr = devAddr;
     m->size = size;
     handle->transferInfo.cmdType = 2;
-    osEPiStartDma(handle, m, direction);
+    //osEPiStartDma(handle, m, direction);
     return 0;
 }
 
