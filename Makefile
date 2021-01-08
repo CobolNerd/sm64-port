@@ -23,7 +23,7 @@ TARGET_N64 ?= 0
 #   ido - uses the SGI IRIS Development Option compiler, which is used to build
 #         an original matching N64 ROM
 #   gcc - uses the GNU C Compiler
-COMPILER ?= ido
+COMPILER ?= gcc
 $(eval $(call validate-option,COMPILER,ido gcc))
 
 
@@ -58,8 +58,6 @@ else ifeq ($(VERSION),sh)
 endif
 
 TARGET := sm64.$(VERSION)
-VERSION_CFLAGS := -D$(VERSION_DEF)
-VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
 
 # Build for the N64 (turn this off for ports)
 TARGET_N64 ?= 0
@@ -259,12 +257,12 @@ endif
 # BUILD_DIR is location where all build artifacts are placed
 BUILD_DIR_BASE := build
 ifeq ($(TARGET_N64),1)
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)
 else
 ifeq ($(TARGET_WEB),1)
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_web
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)_web
 else
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_pc
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)_pc
 endif
 endif
 
@@ -414,6 +412,8 @@ endif
 ifeq ($(TARGET_N64),1)
   TARGET_CFLAGS := -nostdinc -DTARGET_N64 -D_LANGUAGE_C
   CC_CFLAGS := -fno-builtin
+else
+  TARGET_CFLAGS := -D_LANGUAGE_C -DNON_MATCHING -DAVOID_UB 
 endif
 
 INCLUDE_DIRS := include $(BUILD_DIR) $(BUILD_DIR)/include src .
@@ -513,15 +513,8 @@ else # TARGET_N64 == 0
   C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
   DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
 
-  GFX_CFLAGS += -DWIDESCREEN
-  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
-
-  # Check code syntax with host compiler
-  CC_CHECK := gcc
-  CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
-
   # C compiler options
-  CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
+  CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
 
   ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
   RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
@@ -543,7 +536,6 @@ else # TARGET_N64 == 0
     PLATFORM_CFLAGS  := -DTARGET_WEB
     PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
   endif
-
 
   # Compiler and linker flags for graphics backend
   ifeq ($(ENABLE_OPENGL),1)
@@ -570,6 +562,13 @@ else # TARGET_N64 == 0
     GFX_CFLAGS := -DENABLE_DX12
     PLATFORM_LDFLAGS += -lgdi32 -static
   endif
+  
+  GFX_CFLAGS += -DWIDESCREEN
+  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+  
+  # Check code syntax with host compiler
+  CC_CHECK := gcc
+  CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
 
 endif
 
