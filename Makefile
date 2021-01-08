@@ -23,7 +23,7 @@ TARGET_N64 ?= 0
 #   ido - uses the SGI IRIS Development Option compiler, which is used to build
 #         an original matching N64 ROM
 #   gcc - uses the GNU C Compiler
-COMPILER ?= gcc
+COMPILER ?= ido
 $(eval $(call validate-option,COMPILER,ido gcc))
 
 
@@ -32,7 +32,7 @@ $(eval $(call validate-option,COMPILER,ido gcc))
 #   us - builds the 1996 North American version
 #   eu - builds the 1997 PAL version
 #   sh - builds the 1997 Japanese Shindou version, with rumble pak support
-VERSION ?= sh
+VERSION ?= us
 $(eval $(call validate-option,VERSION,jp us eu sh))
 
 ifeq      ($(VERSION),jp)
@@ -308,28 +308,25 @@ ULTRA_BIN_DIRS := lib/bin
 GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
 
 ifeq ($(TARGET_N64),1)
-
-ifeq ($(VERSION),eu)
-  OPT_FLAGS := -g
-else
-ifeq ($(VERSION),sh)
-  OPT_FLAGS := -g
-else
-  OPT_FLAGS := -g
-endif
-endif
-
+  ifeq ($(VERSION),eu)
+    OPT_FLAGS := -g
+  else
+    ifeq ($(VERSION),sh)
+      OPT_FLAGS := -g
+    else
+      OPT_FLAGS := -g
+    endif
+  endif
   # Use a default opt flag for gcc
   ifeq ($(COMPILER),gcc)
     OPT_FLAGS := -g
   endif
-
 else
-ifeq ($(TARGET_WEB),1)
-  OPT_FLAGS := -g -g4 --source-map-base http://localhost:8080/
-else
-  OPT_FLAGS := -g
-endif
+  ifeq ($(TARGET_WEB),1)
+    OPT_FLAGS := -g -g4 --source-map-base http://localhost:8080/
+  else
+    OPT_FLAGS := -g
+  endif
 endif
 
 # File dependencies and variables for specific files
@@ -420,39 +417,37 @@ ifeq ($(TARGET_N64),1)
   else
     $(error Unable to detect a suitable MIPS toolchain installed)
   endif
-endif
 
-AS        := $(CROSS)as
-ifeq ($(COMPILER),gcc)
-  CC      := $(CROSS)gcc
-else
-  ifeq ($(USE_QEMU_IRIX),1)
-    IRIX_ROOT := $(TOOLS_DIR)/ido5.3_compiler
-    CC      := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/bin/cc
-    ACPP    := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/lib/acpp
-    COPT    := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/lib/copt
+  AS        := $(CROSS)as
+  ifeq ($(COMPILER),gcc)
+    CC      := $(CROSS)gcc
   else
-    IDO_ROOT := $(TOOLS_DIR)/ido5.3_recomp
-    CC      := $(IDO_ROOT)/cc
-    ACPP    := $(IDO_ROOT)/acpp
-    COPT    := $(IDO_ROOT)/copt
+    ifeq ($(USE_QEMU_IRIX),1)
+      IRIX_ROOT := $(TOOLS_DIR)/ido5.3_compiler
+      CC      := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/bin/cc
+      ACPP    := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/lib/acpp
+      COPT    := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/lib/copt
+    else
+      IDO_ROOT := $(TOOLS_DIR)/ido5.3_recomp
+      CC      := $(IDO_ROOT)/cc
+      ACPP    := $(IDO_ROOT)/acpp
+      COPT    := $(IDO_ROOT)/copt
+    endif
   endif
-endif
-# Prefer gcc's cpp if installed on the system
-ifneq (,$(call find-command,cpp-10))
-  CPP     := cpp-10
-else
-  CPP     := cpp
-endif
-LD        := $(CROSS)ld
-AR        := $(CROSS)ar
-OBJDUMP   := $(CROSS)objdump
-OBJCOPY   := $(CROSS)objcopy
+  # Prefer gcc's cpp if installed on the system
+  ifneq (,$(call find-command,cpp-10))
+    CPP     := cpp-10
+  else
+    CPP     := cpp
+  endif
+  LD        := $(CROSS)ld
+  AR        := $(CROSS)ar
+  OBJDUMP   := $(CROSS)objdump
+  OBJCOPY   := $(CROSS)objcopy
+  TARGET_CFLAGS := -nostdinc -DTARGET_N64 -D_LANGUAGE_C
+  CC_CFLAGS := -fno-builtin
 
-INCLUDE_DIRS := include $(BUILD_DIR) $(BUILD_DIR)/include src .
-
-ifeq ($(TARGET_N64),1)
-  TARGET_CFLAGS := -nostdinc -I include/libc -DTARGET_N64 -D_LANGUAGE_C
+  INCLUDE_DIRS := include $(BUILD_DIR) $(BUILD_DIR)/include src .
   INCLUDE_DIRS += include/libc
 
   C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
@@ -487,15 +482,79 @@ ifeq ($(TARGET_N64),1)
   # Prevent a crash with -sopt
   export LANG := C
 
-endif # TARGET_N64
+else # TARGET_N64 == 0
+  AS := as
+  ifneq ($(TARGET_WEB),1)
+    CC := gcc
+    CXX := g++
+  else
+    CC := emcc
+  endif
+  ifeq ($(TARGET_WINDOWS),1)
+    LD := $(CXX)
+  else
+    LD := $(CC)
+  endif
+  CPP := cpp -P
+  OBJDUMP := objdump
+  OBJCOPY := objcopy
 
+  # Platform-specific compiler and linker flags
+  ifeq ($(TARGET_WINDOWS),1)
+    PLATFORM_CFLAGS  := -DTARGET_WINDOWS
+    PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
+  endif
+  ifeq ($(TARGET_LINUX),1)
+    PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
+    PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
+  endif
+  ifeq ($(TARGET_WEB),1)
+    PLATFORM_CFLAGS  := -DTARGET_WEB
+    PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+  endif
+
+  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+
+  # Compiler and linker flags for graphics backend
+  ifeq ($(ENABLE_OPENGL),1)
+    GFX_CFLAGS  := -DENABLE_OPENGL
+    GFX_LDFLAGS :=
+    ifeq ($(TARGET_WINDOWS),1)
+      GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
+      GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
+    endif
+    ifeq ($(TARGET_LINUX),1)
+      GFX_CFLAGS  += $(shell sdl2-config --cflags)
+      GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
+    endif
+    ifeq ($(TARGET_WEB),1)
+      GFX_CFLAGS  += -s USE_SDL=2
+      GFX_LDFLAGS += -lGL -lSDL2
+    endif
+  endif
+  ifeq ($(ENABLE_DX11),1)
+    GFX_CFLAGS := -DENABLE_DX11
+    PLATFORM_LDFLAGS += -lgdi32 -static
+  endif
+  ifeq ($(ENABLE_DX12),1)
+    GFX_CFLAGS := -DENABLE_DX12
+    PLATFORM_LDFLAGS += -lgdi32 -static
+  endif
+
+  GFX_CFLAGS += -DWIDESCREEN
+
+  CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+  CFLAGS := $(OPT_FLAGS) $(INCLUDE_CFLAGS) -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
+
+  ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
+
+  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
+
+endif
 #==============================================================================#
 # Miscellaneous Tools                                                          #
 #==============================================================================#
 
-ifneq ($(TARGET_WEB),1)
-  CC := gcc
-  CXX := g++
 # N64 tools
 MIO0TOOL              := $(TOOLS_DIR)/mio0
 N64CKSUM              := $(TOOLS_DIR)/n64cksum
@@ -510,62 +569,7 @@ SKYCONV               := $(TOOLS_DIR)/skyconv
 ifneq (,$(call find-command,armips))
   RSPASM              := armips
 else
-  CC := emcc
   RSPASM              := $(TOOLS_DIR)/armips
-endif
-endif
-
-# Platform-specific compiler and linker flags
-ifeq ($(TARGET_WINDOWS),1)
-  PLATFORM_CFLAGS  := -DTARGET_WINDOWS
-  PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
-endif
-ifeq ($(TARGET_LINUX),1)
-  PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
-  PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
-endif
-ifeq ($(TARGET_WEB),1)
-  PLATFORM_CFLAGS  := -DTARGET_WEB
-  PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
-endif
-
-PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
-
-# Compiler and linker flags for graphics backend
-ifeq ($(ENABLE_OPENGL),1)
-  GFX_CFLAGS  := -DENABLE_OPENGL
-  GFX_LDFLAGS :=
-  ifeq ($(TARGET_WINDOWS),1)
-    GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
-    GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
-  endif
-  ifeq ($(TARGET_LINUX),1)
-    GFX_CFLAGS  += $(shell sdl2-config --cflags)
-    GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
-  endif
-  ifeq ($(TARGET_WEB),1)
-    GFX_CFLAGS  += -s USE_SDL=2
-    GFX_LDFLAGS += -lGL -lSDL2
-  endif
-endif
-ifeq ($(ENABLE_DX11),1)
-  GFX_CFLAGS := -DENABLE_DX11
-  PLATFORM_LDFLAGS += -lgdi32 -static
-endif
-ifeq ($(ENABLE_DX12),1)
-  GFX_CFLAGS := -DENABLE_DX12
-  PLATFORM_LDFLAGS += -lgdi32 -static
-endif
-
-GFX_CFLAGS += -DWIDESCREEN
-
-CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
-CFLAGS := $(OPT_FLAGS) $(INCLUDE_CFLAGS) -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
-
-ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
-
-LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
-
 endif
 ENDIAN_BITWIDTH       := $(BUILD_DIR)/endian-and-bitwidth
 EMULATOR = mupen64plus
@@ -599,14 +603,13 @@ endef
 #==============================================================================#
 
 ifeq ($(TARGET_N64),1)
-  all: $(ROM)
-  ifeq ($(COMPARE),1)
-    @$(SHA1SUM) -c $(TARGET).sha1 || (echo 'The build succeeded, but did not match the official ROM. This is expected if you are making changes to the game.\nTo silence this message, use "make COMPARE=0"'. && false)
-  endif
+	all: $(ROM)
+		ifeq ($(COMPARE),1)
+			@$(PRINT) "$(GREEN)Checking if ROM matches.. $(NO_COL)\n"
+			@$(SHA1SUM) --quiet -c $(TARGET).sha1 && $(PRINT) "$(TARGET): $(GREEN)OK$(NO_COL)\n" || ($(PRINT) "$(YELLOW)Building the ROM file has succeeded, but does not match the original ROM.\nThis is expected, and not an error, if you are making modifications.\nTo silence this message, use 'make COMPARE=0.' $(NO_COL)\n" && false)
+		endif
 else
-all: $(EXE)
-	@$(PRINT) "$(GREEN)Checking if ROM matches.. $(NO_COL)\n"
-	@$(SHA1SUM) --quiet -c $(TARGET).sha1 && $(PRINT) "$(TARGET): $(GREEN)OK$(NO_COL)\n" || ($(PRINT) "$(YELLOW)Building the ROM file has succeeded, but does not match the original ROM.\nThis is expected, and not an error, if you are making modifications.\nTo silence this message, use 'make COMPARE=0.' $(NO_COL)\n" && false)
+	all: $(EXE)
 endif
 
 clean:
