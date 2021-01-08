@@ -23,7 +23,7 @@ TARGET_N64 ?= 0
 #   ido - uses the SGI IRIS Development Option compiler, which is used to build
 #         an original matching N64 ROM
 #   gcc - uses the GNU C Compiler
-COMPILER ?= ido
+COMPILER ?= gcc
 $(eval $(call validate-option,COMPILER,ido gcc))
 
 
@@ -59,20 +59,34 @@ endif
 
 TARGET := sm64.$(VERSION)
 
-# Graphics microcode used
-GRUCODE ?= f3d_old
-# If COMPARE is 1, check the output sha1sum when building 'all'
-COMPARE ?= 1
-# If NON_MATCHING is 1, define the NON_MATCHING and AVOID_UB macros when building (recommended)
-NON_MATCHING ?= 0
 # Build for the N64 (turn this off for ports)
 TARGET_N64 ?= 0
 # Build for Emscripten/WebGL
 TARGET_WEB ?= 0
 
+# GRUCODE - selects which RSP microcode to use.
+#   f3d_old - default for JP and US versions
+#   f3d_new - default for EU and Shindou versions
+#   f3dex   -
+#   f3dex2  -
+#   f3dzex  - newer, experimental microcode used in Animal Crossing
+$(eval $(call validate-option,GRUCODE,f3d_old f3dex f3dex2 f3d_new f3dzex))
+
+ifeq      ($(GRUCODE),f3d_old)
+  DEFINES += F3D_OLD=1
+else ifeq ($(GRUCODE),f3d_new) # Fast3D 2.0H
+  DEFINES += F3D_NEW=1
+else ifeq ($(GRUCODE),f3dex) # Fast3DEX
+  DEFINES += F3DEX_GBI=1 F3DEX_GBI_SHARED=1
+else ifeq ($(GRUCODE), f3dex2) # Fast3DEX2
+  DEFINES += F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
+else ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mori)
+  $(warning Fast3DZEX is experimental. Try at your own risk.)
+  DEFINES += F3DZEX_GBI_2=1 F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
+endif
+
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
-
   NON_MATCHING := 1
   GRUCODE := f3dex2e
   TARGET_WINDOWS := 0
@@ -84,7 +98,6 @@ ifeq ($(TARGET_N64),0)
       TARGET_LINUX := 1
     endif
   endif
-
   ifeq ($(TARGET_WINDOWS),1)
     # On Windows, default to DirectX 11
     ifneq ($(ENABLE_OPENGL),1)
@@ -120,84 +133,56 @@ ifeq ($(TARGET_N64),0)
       $(error Cannot specify multiple graphics backends)
     endif
   endif
+endif
+  
+# USE_QEMU_IRIX - when ido is selected, select which way to emulate IRIX programs
+#   1 - use qemu-irix
+#   0 - statically recompile the IRIX programs
+USE_QEMU_IRIX ?= 0
+$(eval $(call validate-option,USE_QEMU_IRIX,0 1))
 
+ifeq      ($(COMPILER),ido)
+  ifeq ($(USE_QEMU_IRIX),1)
+    # Verify that qemu-irix exists
+    QEMU_IRIX ?= $(call find-command,qemu-irix)
+    ifeq (, $(QEMU_IRIX))
+      $(error Using the IDO compiler requires qemu-irix. Please install qemu-irix package or set the QEMU_IRIX environment variable to the full qemu-irix binary path)
+    endif
+  endif
+
+  MIPSISET := -mips2
+else ifeq ($(COMPILER),gcc)
+  NON_MATCHING := 1
+  MIPSISET     := -mips3
+  OPT_FLAGS    := -O2
 endif
 
-ifeq ($(COMPILER),gcc)
+# NON_MATCHING - whether to build a matching, identical copy of the ROM
+#   1 - enable some alternate, more portable code that does not produce a matching ROM
+#   0 - build a matching ROM
+NON_MATCHING ?= 0
+$(eval $(call validate-option,NON_MATCHING,0 1))
+
+ifeq ($(TARGET_N64),0)
   NON_MATCHING := 1
 endif
 
-# Common build print status function
-define print
-  @$(PRINT) "$(GREEN)$(1) $(YELLOW)$(2)$(GREEN) -> $(BLUE)$(3)$(NO_COL)\n"
-endef
-
-# Release
-
-ifeq ($(VERSION),jp)
-  VERSION_DEF := VERSION_JP
-  GRUCODE_DEF := F3D_OLD
-else
-ifeq ($(VERSION),us)
-  VERSION_DEF := VERSION_US
-  GRUCODE_DEF := F3D_OLD
-else
-ifeq ($(VERSION),eu)
-  VERSION_DEF := VERSION_EU
-  GRUCODE_DEF := F3D_NEW
-else
-ifeq ($(VERSION),sh)
-  VERSION_DEF := VERSION_SH
-  GRUCODE_DEF := F3D_NEW
-else
-  $(error unknown version "$(VERSION)")
-endif
-endif
-endif
-endif
-
-TARGET := sm64.$(VERSION)
-VERSION_CFLAGS := -D$(VERSION_DEF)
-VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
-
-# Microcode
-
-ifeq ($(GRUCODE),f3dex) # Fast3DEX
-  GRUCODE_DEF := F3DEX_GBI
-  GRUCODE_ASFLAGS := --defsym F3DEX_GBI_SHARED=1
-  TARGET := $(TARGET).f3dex
-  COMPARE := 0
-else
-ifeq ($(GRUCODE), f3dex2) # Fast3DEX2
-  GRUCODE_DEF := F3DEX_GBI_2
-  GRUCODE_ASFLAGS := --defsym F3DEX_GBI_SHARED=1
-  TARGET := $(TARGET).f3dex2
-  COMPARE := 0
-else
-ifeq ($(GRUCODE), f3dex2e) # Fast3DEX2 Extended (for PC)
-  GRUCODE_DEF := F3DEX_GBI_2E
-  TARGET := $(TARGET).f3dex2e
-  COMPARE := 0
-else
-ifeq ($(GRUCODE),f3d_new) # Fast3D 2.0H (Shindou)
-  GRUCODE_DEF := F3D_NEW
-  TARGET := $(TARGET).f3d_new
-  COMPARE := 0
-else
-ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mori)
-  $(warning Fast3DZEX is experimental. Try at your own risk.)
-  GRUCODE_DEF := F3DEX_GBI_2
-  GRUCODE_ASFLAGS := --defsym F3DEX_GBI_SHARED=1
-  TARGET := $(TARGET).f3dzex
+ifeq ($(NON_MATCHING),1)
+  DEFINES += NON_MATCHING=1 AVOID_UB=1
   COMPARE := 0
 endif
-endif
-endif
-endif
-endif
 
-GRUCODE_CFLAGS := -D$(GRUCODE_DEF)
-GRUCODE_ASFLAGS := $(GRUCODE_ASFLAGS) --defsym $(GRUCODE_DEF)=1
+# COMPARE - whether to verify the SHA-1 hash of the ROM after building
+#   1 - verifies the SHA-1 hash of the selected version of the game
+#   0 - does not verify the hash
+COMPARE ?= 1
+$(eval $(call validate-option,COMPARE,0 1))
+
+TARGET_STRING := sm64.$(VERSION).$(GRUCODE)
+# If non-default settings were chosen, disable COMPARE
+ifeq ($(filter $(TARGET_STRING), sm64.jp.f3d_old sm64.us.f3d_old sm64.eu.f3d_new sm64.sh.f3d_new),)
+  COMPARE := 0
+endif
 
 # Whether to hide commands or not
 VERBOSE ?= 0
@@ -208,10 +193,23 @@ endif
 # Whether to colorize build messages
 COLOR ?= 1
 
-ifeq ($(NON_MATCHING),1)
-  MATCH_CFLAGS := -DNON_MATCHING -DAVOID_UB
-  MATCH_ASFLAGS := --defsym AVOID_UB=1
-  COMPARE := 0
+# display selected options unless 'make clean' or 'make distclean' is run
+ifeq ($(filter clean distclean,$(MAKECMDGOALS)),)
+  $(info ==== Build Options ====)
+  $(info Version:        $(VERSION))
+  $(info Microcode:      $(GRUCODE))
+  $(info Target:         $(TARGET))
+  ifeq ($(COMPARE),1)
+    $(info Compare ROM:    yes)
+  else
+    $(info Compare ROM:    no)
+  endif
+  ifeq ($(NON_MATCHING),1)
+    $(info Build Matching: no)
+  else
+    $(info Build Matching: yes)
+  endif
+  $(info =======================)
 endif
 
 
@@ -220,6 +218,7 @@ endif
 #==============================================================================#
 
 TOOLS_DIR := tools
+
 # (This is a bit hacky, but a lot of rules implicitly depend
 # on tools and assets, and we use directory globs further down
 # in the makefile that we want should cover assets.)
