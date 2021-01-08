@@ -287,14 +287,12 @@ TEXTURE_DIR    := textures
 ACTOR_DIR      := actors
 LEVEL_DIRS     := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
 
-# Directories containing source files
-SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets
-
 ASM_DIRS := lib
 ifeq ($(TARGET_N64),1)
   ASM_DIRS := asm $(ASM_DIRS)
+  SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin data assets asm lib sound
 else
-  SRC_DIRS := $(SRC_DIRS) src/pc src/pc/gfx src/pc/audio src/pc/controller
+  SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets src/pc src/pc/gfx src/pc/audio src/pc/controller
   ASM_DIRS :=
 endif
 BIN_DIRS := bin bin/$(VERSION)
@@ -349,7 +347,6 @@ ifneq ($(TARGET_N64),1)
     guScaleF.c \
     guTranslateF.c
 
-  C_FILES := $(filter-out src/game/main.c,$(C_FILES))
   ULTRA_C_FILES := $(addprefix lib/src/,$(ULTRA_C_FILES))
 else
   ULTRA_C_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
@@ -507,8 +504,18 @@ else # TARGET_N64 == 0
   C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
   DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
 
+
   # C compiler options
-  CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
+  ifeq ($(TARGET_N64),1)
+    CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
+    ifeq ($(COMPILER),gcc)
+      CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
+    else
+      CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
+    endif
+  else
+    CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
+  endif
 
   ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
   RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
@@ -562,8 +569,13 @@ else # TARGET_N64 == 0
   
   # Check code syntax with host compiler
   CC_CHECK := gcc
-  CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+  ifeq ($(TARGET_N64),1)
+    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
+  else
+    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+  endif
 
+  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 endif
 
 #==============================================================================#
