@@ -407,6 +407,16 @@ endif
 #==============================================================================#
 
 ifeq ($(TARGET_N64),1)
+  TARGET_CFLAGS := -nostdinc -DTARGET_N64 -D_LANGUAGE_C
+  CC_CFLAGS := -fno-builtin
+endif
+
+INCLUDE_DIRS := include $(BUILD_DIR) $(BUILD_DIR)/include src .
+ifeq ($(TARGET_N64),1)
+  INCLUDE_DIRS += include/libc
+endif
+
+ifeq ($(TARGET_N64),1)
   # detect prefix for MIPS toolchain
   ifneq      ($(call find-command,mips-linux-gnu-ld),)
     CROSS := mips-linux-gnu-
@@ -444,12 +454,7 @@ ifeq ($(TARGET_N64),1)
   AR        := $(CROSS)ar
   OBJDUMP   := $(CROSS)objdump
   OBJCOPY   := $(CROSS)objcopy
-  TARGET_CFLAGS := -nostdinc -DTARGET_N64 -D_LANGUAGE_C
-  CC_CFLAGS := -fno-builtin
-
-  INCLUDE_DIRS := include $(BUILD_DIR) $(BUILD_DIR)/include src .
-  INCLUDE_DIRS += include/libc
-
+  
   C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
   DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
 
@@ -483,6 +488,7 @@ ifeq ($(TARGET_N64),1)
   export LANG := C
 
 else # TARGET_N64 == 0
+  
   AS := as
   ifneq ($(TARGET_WEB),1)
     CC := gcc
@@ -551,6 +557,7 @@ else # TARGET_N64 == 0
   LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 
 endif
+
 #==============================================================================#
 # Miscellaneous Tools                                                          #
 #==============================================================================#
