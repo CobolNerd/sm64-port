@@ -58,6 +58,8 @@ else ifeq ($(VERSION),sh)
 endif
 
 TARGET := sm64.$(VERSION)
+VERSION_CFLAGS := -D$(VERSION_DEF)
+VERSION_ASFLAGS := --defsym $(VERSION_DEF)=1
 
 # Build for the N64 (turn this off for ports)
 TARGET_N64 ?= 0
@@ -335,6 +337,9 @@ include Makefile.split
 # Source code files
 LEVEL_C_FILES     := $(wildcard levels/*/leveldata.c) $(wildcard levels/*/script.c) $(wildcard levels/*/geo.c)
 C_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C_FILES)
+ifeq ($(TARGET_N64),0)
+  C_FILES           := $(filter-out src/game/main.c,$(C_FILES))
+endif
 S_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.s))
 ULTRA_C_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
 GODDARD_C_FILES   := $(foreach dir,$(GODDARD_SRC_DIRS),$(wildcard $(dir)/*.c))
@@ -505,6 +510,26 @@ else # TARGET_N64 == 0
   OBJDUMP := objdump
   OBJCOPY := objcopy
 
+  C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
+  DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
+
+  GFX_CFLAGS += -DWIDESCREEN
+  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+
+  # Check code syntax with host compiler
+  CC_CHECK := gcc
+  CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+
+  # C compiler options
+  CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
+
+  ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
+  RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
+  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
+
+  # C preprocessor flags
+  CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
+
   # Platform-specific compiler and linker flags
   ifeq ($(TARGET_WINDOWS),1)
     PLATFORM_CFLAGS  := -DTARGET_WINDOWS
@@ -519,7 +544,6 @@ else # TARGET_N64 == 0
     PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
   endif
 
-  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
 
   # Compiler and linker flags for graphics backend
   ifeq ($(ENABLE_OPENGL),1)
@@ -546,15 +570,6 @@ else # TARGET_N64 == 0
     GFX_CFLAGS := -DENABLE_DX12
     PLATFORM_LDFLAGS += -lgdi32 -static
   endif
-
-  GFX_CFLAGS += -DWIDESCREEN
-
-  CC_CHECK := $(CC) -fsyntax-only -fsigned-char $(INCLUDE_CFLAGS) -Wall -Wextra -Wno-format-security -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
-  CFLAGS := $(OPT_FLAGS) $(INCLUDE_CFLAGS) -D_LANGUAGE_C $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
-
-  ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
-
-  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 
 endif
 
