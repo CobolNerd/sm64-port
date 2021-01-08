@@ -1,16 +1,31 @@
 # Makefile to rebuild SM64 split image
 
-### Default target ###
+include util.mk
 
+# Default target
 default: all
 
 # Preprocessor definitions
 DEFINES :=
 
-### Build Options ###
+#==============================================================================#
+# Build Options                                                                #
+#==============================================================================#
 
-# These options can either be changed by modifying the makefile, or
-# by building with 'make SETTING=value'. 'make clean' may be required.
+# These options can either be set by building with 'make SETTING=value'.
+# 'make clean' may be required first.
+
+# Build for the N64 (turn this off for ports)
+TARGET_N64 ?= 0
+
+
+# COMPILER - selects the C compiler to use
+#   ido - uses the SGI IRIS Development Option compiler, which is used to build
+#         an original matching N64 ROM
+#   gcc - uses the GNU C Compiler
+COMPILER ?= ido
+$(eval $(call validate-option,COMPILER,ido gcc))
+
 
 # VERSION - selects the version of the game to build
 #   jp - builds the 1996 Japanese version
@@ -54,8 +69,6 @@ NON_MATCHING ?= 0
 TARGET_N64 ?= 0
 # Build for Emscripten/WebGL
 TARGET_WEB ?= 0
-# Compiler to use (ido or gcc)
-COMPILER ?= ido
 
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
@@ -252,7 +265,6 @@ else
 endif
 endif
 
-LIBULTRA := $(BUILD_DIR)/libultra.a
 ifeq ($(TARGET_WEB),1)
 EXE := $(BUILD_DIR)/$(TARGET).html
 else
@@ -262,17 +274,17 @@ else
 EXE := $(BUILD_DIR)/$(TARGET)
 endif
 endif
-ROM := $(BUILD_DIR)/$(TARGET).z64
-ELF := $(BUILD_DIR)/$(TARGET).elf
-LD_SCRIPT := sm64.ld
-MIO0_DIR := $(BUILD_DIR)/bin
-SOUND_BIN_DIR := $(BUILD_DIR)/sound
-TEXTURE_DIR := textures
-ACTOR_DIR := actors
-LEVEL_DIRS := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
+ROM            := $(BUILD_DIR)/$(TARGET).z64
+ELF            := $(BUILD_DIR)/$(TARGET).elf
+LIBULTRA       := $(BUILD_DIR)/libultra.a
+LD_SCRIPT      := sm64.ld
+MIO0_DIR       := $(BUILD_DIR)/bin
+SOUND_BIN_DIR  := $(BUILD_DIR)/sound
+TEXTURE_DIR    := textures
+ACTOR_DIR      := actors
+LEVEL_DIRS     := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
 
 # Directories containing source files
-SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets
 ASM_DIRS := lib
 ifeq ($(TARGET_N64),1)
   ASM_DIRS := asm $(ASM_DIRS)
@@ -280,6 +292,8 @@ else
   SRC_DIRS := $(SRC_DIRS) src/pc src/pc/gfx src/pc/audio src/pc/controller
   ASM_DIRS :=
 endif
+#SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets
+SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin data assets asm lib sound
 BIN_DIRS := bin bin/$(VERSION)
 
 ULTRA_SRC_DIRS := lib/src lib/src/math
@@ -323,21 +337,17 @@ endif
 # File dependencies and variables for specific files
 include Makefile.split
 
+LEVEL_C_FILES     := $(wildcard levels/*/leveldata.c) $(wildcard levels/*/script.c) $(wildcard levels/*/geo.c)
+C_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C_FILES)
+S_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.s))
+ULTRA_C_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
+GODDARD_C_FILES   := $(foreach dir,$(GODDARD_SRC_DIRS),$(wildcard $(dir)/*.c))
+ULTRA_S_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.s))
+GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c
+
 # Source code files
-LEVEL_C_FILES := $(wildcard levels/*/leveldata.c) $(wildcard levels/*/script.c) $(wildcard levels/*/geo.c)
-C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C_FILES)
-CXX_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.cpp))
-S_FILES := $(foreach dir,$(ASM_DIRS),$(wildcard $(dir)/*.s))
-ULTRA_C_FILES := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
-GODDARD_C_FILES := $(foreach dir,$(GODDARD_SRC_DIRS),$(wildcard $(dir)/*.c))
 ifeq ($(TARGET_N64),1)
   ULTRA_S_FILES := $(foreach dir,$(ULTRA_ASM_DIRS),$(wildcard $(dir)/*.s))
-endif
-GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c \
-  $(addprefix $(BUILD_DIR)/bin/,$(addsuffix _skybox.c,$(notdir $(basename $(wildcard textures/skyboxes/*.png)))))
-
-ifeq ($(TARGET_WINDOWS),0)
-  CXX_FILES :=
 endif
 
 ifneq ($(TARGET_N64),1)
@@ -370,10 +380,8 @@ SOUND_SEQUENCE_FILES := \
     $(foreach file,$(wildcard $(dir)/*.s),$(BUILD_DIR)/$(file:.s=.m64)) \
   )
 
-
 # Object files
 O_FILES := $(foreach file,$(C_FILES),$(BUILD_DIR)/$(file:.c=.o)) \
-           $(foreach file,$(CXX_FILES),$(BUILD_DIR)/$(file:.cpp=.o)) \
            $(foreach file,$(S_FILES),$(BUILD_DIR)/$(file:.s=.o)) \
            $(foreach file,$(GENERATED_C_FILES),$(file:.c=.o))
 
@@ -387,7 +395,11 @@ DEP_FILES := $(O_FILES:.o=.d) $(ULTRA_O_FILES:.o=.d) $(GODDARD_O_FILES:.o=.d) $(
 
 # Files with GLOBAL_ASM blocks
 ifeq ($(NON_MATCHING),0)
-GLOBAL_ASM_C_FILES != grep -rl 'GLOBAL_ASM(' $(wildcard src/**/*.c)
+  ifeq ($(VERSION),sh)
+    GLOBAL_ASM_C_FILES != grep -rl 'GLOBAL_ASM(' $(wildcard src/**/*.c) $(wildcard lib/src/*.c)
+  else
+    GLOBAL_ASM_C_FILES != grep -rl 'GLOBAL_ASM(' $(wildcard src/**/*.c)
+  endif
 GLOBAL_ASM_O_FILES = $(foreach file,$(GLOBAL_ASM_C_FILES),$(BUILD_DIR)/$(file:.c=.o))
 GLOBAL_ASM_DEP = $(BUILD_DIR)/src/audio/non_matching_dep
 endif
@@ -400,29 +412,43 @@ INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
 ENDIAN_BITWIDTH := $(BUILD_DIR)/endian-and-bitwidth
 
 ifeq ($(TARGET_N64),1)
-IRIX_ROOT := tools/ido5.3_compiler
+#==============================================================================#
+# Compiler Options                                                             #
+#==============================================================================#
 
-ifeq ($(shell type mips-linux-gnu-ld >/dev/null 2>/dev/null; echo $$?), 0)
+# detect prefix for MIPS toolchain
+ifneq      ($(call find-command,mips-linux-gnu-ld),)
   CROSS := mips-linux-gnu-
-else ifeq ($(shell type mips64-linux-gnu-ld >/dev/null 2>/dev/null; echo $$?), 0)
+else ifneq ($(call find-command,mips64-linux-gnu-ld),)
   CROSS := mips64-linux-gnu-
-else
+else ifneq ($(call find-command,mips64-elf-ld),)
   CROSS := mips64-elf-
-endif
-
-# check that either QEMU_IRIX is set or qemu-irix package installed
-ifeq ($(COMPILER),ido)
-  ifndef QEMU_IRIX
-    QEMU_IRIX := $(shell which qemu-irix 2>/dev/null)
-    ifeq (, $(QEMU_IRIX))
-      $(error Please install qemu-irix package or set QEMU_IRIX env var to the full qemu-irix binary path)
-    endif
-  endif
+else
+  $(error Unable to detect a suitable MIPS toolchain installed)
 endif
 
 AS        := $(CROSS)as
-CC        := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/bin/cc
-CPP       := cpp -P -Wno-trigraphs
+ifeq ($(COMPILER),gcc)
+  CC      := $(CROSS)gcc
+else
+  ifeq ($(USE_QEMU_IRIX),1)
+    IRIX_ROOT := $(TOOLS_DIR)/ido5.3_compiler
+    CC      := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/bin/cc
+    ACPP    := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/lib/acpp
+    COPT    := $(QEMU_IRIX) -silent -L $(IRIX_ROOT) $(IRIX_ROOT)/usr/lib/copt
+  else
+    IDO_ROOT := $(TOOLS_DIR)/ido5.3_recomp
+    CC      := $(IDO_ROOT)/cc
+    ACPP    := $(IDO_ROOT)/acpp
+    COPT    := $(IDO_ROOT)/copt
+  endif
+endif
+# Prefer gcc's cpp if installed on the system
+ifneq (,$(call find-command,cpp-10))
+  CPP     := cpp-10
+else
+  CPP     := cpp
+endif
 LD        := $(CROSS)ld
 AR        := $(CROSS)ar
 OBJDUMP   := $(CROSS)objdump
@@ -432,31 +458,38 @@ PYTHON    := python3
 # change the compiler to gcc, to use the default, install the gcc-mips-linux-gnu package
 ifeq ($(COMPILER),gcc)
   CC        := $(CROSS)gcc
-endif
-
 ifeq ($(TARGET_N64),1)
-  TARGET_CFLAGS := -nostdinc -I include/libc -DTARGET_N64 -D_LANGUAGE_C
+  TARGET_CFLAGS := -nostdinc -DTARGET_N64 -D_LANGUAGE_C
   CC_CFLAGS := -fno-builtin
 endif
 
-INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
+INCLUDE_DIRS := include $(BUILD_DIR) $(BUILD_DIR)/include src .
+ifeq ($(TARGET_N64),1)
+  TARGET_CFLAGS := -nostdinc -I include/libc -DTARGET_N64 -D_LANGUAGE_C
+  CC_CFLAGS := -fno-builtin
+  INCLUDE_DIRS += include/libc
+endif
+
+C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
+DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
 
 # Check code syntax with host compiler
 CC_CHECK := gcc
-CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) $(INCLUDE_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(VERSION_CFLAGS) $(GRUCODE_CFLAGS)
+CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
 
-COMMON_CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(INCLUDE_CFLAGS) $(VERSION_CFLAGS) $(MATCH_CFLAGS) $(MIPSISET) $(GRUCODE_CFLAGS)
-
-ASFLAGS := -march=vr4300 -mabi=32 -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS) $(MATCH_ASFLAGS) $(GRUCODE_ASFLAGS)
-CFLAGS = -Wab,-r4300_mul -non_shared -G 0 -Xcpluscomm -Xfullwarn -signed $(COMMON_CFLAGS) $(MIPSBIT)
-OBJCOPYFLAGS := --pad-to=0x800000 --gap-fill=0xFF
-SYMBOL_LINKING_FLAGS := $(addprefix -R ,$(SEG_FILES))
-LDFLAGS := -T undefined_syms.txt -T $(BUILD_DIR)/$(LD_SCRIPT) -Map $(BUILD_DIR)/sm64.$(VERSION).map --no-check-sections $(SYMBOL_LINKING_FLAGS)
-ENDIAN_BITWIDTH := $(BUILD_DIR)/endian-and-bitwidth
-
+# C compiler options
+CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
 ifeq ($(COMPILER),gcc)
-  CFLAGS := -march=vr4300 -mfix4300 -mabi=32 -mno-shared -G 0 -mhard-float -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -I include -I src/ -I $(BUILD_DIR)/include -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra $(COMMON_CFLAGS)
+  CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
+else
+  CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
 endif
+
+ASFLAGS     := -march=vr4300 -mabi=32 $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
+RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
+
+# C preprocessor flags
+CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
 
 ifeq ($(shell getconf LONG_BIT), 32)
   # Work around memory allocation bug in QEMU
@@ -470,23 +503,32 @@ endif
 export LANG := C
 
 else # TARGET_N64
+#==============================================================================#
+# Miscellaneous Tools                                                          #
+#==============================================================================#
 
 AS := as
 ifneq ($(TARGET_WEB),1)
   CC := gcc
   CXX := g++
+# N64 tools
+MIO0TOOL              := $(TOOLS_DIR)/mio0
+N64CKSUM              := $(TOOLS_DIR)/n64cksum
+N64GRAPHICS           := $(TOOLS_DIR)/n64graphics
+N64GRAPHICS_CI        := $(TOOLS_DIR)/n64graphics_ci
+TEXTCONV              := $(TOOLS_DIR)/textconv
+AIFF_EXTRACT_CODEBOOK := $(TOOLS_DIR)/aiff_extract_codebook
+VADPCM_ENC            := $(TOOLS_DIR)/vadpcm_enc
+EXTRACT_DATA_FOR_MIO  := $(TOOLS_DIR)/extract_data_for_mio
+SKYCONV               := $(TOOLS_DIR)/skyconv
+# Use the system installed armips if available. Otherwise use the one provided with this repository.
+ifneq (,$(call find-command,armips))
+  RSPASM              := armips
 else
   CC := emcc
+  RSPASM              := $(TOOLS_DIR)/armips
 endif
-ifeq ($(TARGET_WINDOWS),1)
-  LD := $(CXX)
-else
-  LD := $(CC)
 endif
-CPP := cpp -P
-OBJDUMP := objdump
-OBJCOPY := objcopy
-PYTHON := python3
 
 # Platform-specific compiler and linker flags
 ifeq ($(TARGET_WINDOWS),1)
@@ -540,22 +582,7 @@ ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
 LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 
 endif
-
-C_DEFINES := $(foreach d,$(DEFINES),-D$(d)) 
-
-####################### Other Tools #########################
-
-# N64 tools
-TOOLS_DIR = tools
-MIO0TOOL = $(TOOLS_DIR)/mio0
-N64CKSUM = $(TOOLS_DIR)/n64cksum
-N64GRAPHICS = $(TOOLS_DIR)/n64graphics
-N64GRAPHICS_CI = $(TOOLS_DIR)/n64graphics_ci
-TEXTCONV = $(TOOLS_DIR)/textconv
-AIFF_EXTRACT_CODEBOOK = $(TOOLS_DIR)/aiff_extract_codebook
-VADPCM_ENC = $(TOOLS_DIR)/vadpcm_enc
-EXTRACT_DATA_FOR_MIO = $(TOOLS_DIR)/extract_data_for_mio
-SKYCONV = $(TOOLS_DIR)/skyconv
+ENDIAN_BITWIDTH       := $(BUILD_DIR)/endian-and-bitwidth
 EMULATOR = mupen64plus
 EMU_FLAGS = --noosd
 LOADER = loader64
@@ -572,18 +599,19 @@ YELLOW  := \033[0;33m
 BLINK   := \033[33;5m
 endif
 
-ifeq (, $(shell which armips 2>/dev/null))
-  RSPASM := $(TOOLS_DIR)/armips
-else
-  RSPASM = armips
-endif
-
 # Use Objcopy instead of extract_data_for_mio
 ifeq ($(COMPILER),gcc)
-EXTRACT_DATA_FOR_MIO := $(OBJCOPY) -O binary --only-section=.data
+  EXTRACT_DATA_FOR_MIO := $(OBJCOPY) -O binary --only-section=.data
 endif
 
-######################## Targets #############################
+# Common build print status function
+define print
+  @$(PRINT) "$(GREEN)$(1) $(YELLOW)$(2)$(GREEN) -> $(BLUE)$(3)$(NO_COL)\n"
+endef
+
+#==============================================================================#
+# Main Targets                                                                 #
+#==============================================================================#
 
 ifeq ($(TARGET_N64),1)
 all: $(ROM)
@@ -592,14 +620,16 @@ ifeq ($(COMPARE),1)
 endif
 else
 all: $(EXE)
+	@$(PRINT) "$(GREEN)Checking if ROM matches.. $(NO_COL)\n"
+	@$(SHA1SUM) --quiet -c $(TARGET).sha1 && $(PRINT) "$(TARGET): $(GREEN)OK$(NO_COL)\n" || ($(PRINT) "$(YELLOW)Building the ROM file has succeeded, but does not match the original ROM.\nThis is expected, and not an error, if you are making modifications.\nTo silence this message, use 'make COMPARE=0.' $(NO_COL)\n" && false)
 endif
 
 clean:
 	$(RM) -r $(BUILD_DIR_BASE)
 
-distclean:
-	$(RM) -r $(BUILD_DIR_BASE)
-	./extract_assets.py --clean
+distclean: clean
+	$(PYTHON) extract_assets.py --clean
+	$(MAKE) -C $(TOOLS_DIR) clean
 
 test: $(ROM)
 	$(EMULATOR) $(EMU_FLAGS) $<
@@ -671,10 +701,10 @@ $(BUILD_DIR)/src/menu/file_select.o: $(BUILD_DIR)/include/text_strings.h
 $(BUILD_DIR)/src/menu/star_select.o: $(BUILD_DIR)/include/text_strings.h
 $(BUILD_DIR)/src/game/ingame_menu.o: $(BUILD_DIR)/include/text_strings.h
 
-################################################################
-# TEXTURE GENERATION                                           #
-################################################################
-
+#==============================================================================#
+# Texture Generation                                                           #
+#==============================================================================#
+TEXTURE_ENCODING := u8
 # RGBA32, RGBA16, IA16, IA8, IA4, IA1, I8, I4
 $(BUILD_DIR)/%: %.png
 	$(N64GRAPHICS) -i $@ -g $< -f $(lastword $(subst ., ,$@))
@@ -785,6 +815,7 @@ $(BUILD_DIR)/levels/scripts.o: $(BUILD_DIR)/include/level_headers.h
 
 $(BUILD_DIR)/include/level_headers.h: levels/level_headers.h.in
 	$(CPP) -I . levels/level_headers.h.in | $(PYTHON) tools/output_level_headers.py > $(BUILD_DIR)/include/level_headers.h
+  
 # Convert binary file to a comma-separated list of byte values for inclusion in C code
 $(BUILD_DIR)/%.inc.c: $(BUILD_DIR)/%
 	$(call print,Piping:,$<,$@)
