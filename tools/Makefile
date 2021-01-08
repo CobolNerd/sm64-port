@@ -61,9 +61,9 @@ endif
 all-except-recomp: $(LIBAUDIOFILE) $(BUILD_PROGRAMS)
 
 ifeq ($(TARGET_N64),1)
-all: all-except-recomp ido5.3_recomp
+  all: all-except-recomp ido5.3_recomp
 else
-all: all-except-recomp
+  all: all-except-recomp
 endif
 
 clean:

@@ -64,27 +64,6 @@ TARGET_N64 ?= 0
 # Build for Emscripten/WebGL
 TARGET_WEB ?= 0
 
-# GRUCODE - selects which RSP microcode to use.
-#   f3d_old - default for JP and US versions
-#   f3d_new - default for EU and Shindou versions
-#   f3dex   -
-#   f3dex2  -
-#   f3dzex  - newer, experimental microcode used in Animal Crossing
-$(eval $(call validate-option,GRUCODE,f3d_old f3dex f3dex2 f3d_new f3dzex))
-
-ifeq      ($(GRUCODE),f3d_old)
-  DEFINES += F3D_OLD=1
-else ifeq ($(GRUCODE),f3d_new) # Fast3D 2.0H
-  DEFINES += F3D_NEW=1
-else ifeq ($(GRUCODE),f3dex) # Fast3DEX
-  DEFINES += F3DEX_GBI=1 F3DEX_GBI_SHARED=1
-else ifeq ($(GRUCODE), f3dex2) # Fast3DEX2
-  DEFINES += F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
-else ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mori)
-  $(warning Fast3DZEX is experimental. Try at your own risk.)
-  DEFINES += F3DZEX_GBI_2=1 F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
-endif
-
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
   NON_MATCHING := 1
@@ -133,6 +112,29 @@ ifeq ($(TARGET_N64),0)
       $(error Cannot specify multiple graphics backends)
     endif
   endif
+endif
+
+# GRUCODE - selects which RSP microcode to use.
+#   f3d_old - default for JP and US versions
+#   f3d_new - default for EU and Shindou versions
+#   f3dex   -
+#   f3dex2  -
+#   f3dzex  - newer, experimental microcode used in Animal Crossing
+$(eval $(call validate-option,GRUCODE,f3d_old f3dex f3dex2 f3dex2e f3d_new f3dzex))
+
+ifeq      ($(GRUCODE),f3d_old)
+  DEFINES += F3D_OLD=1
+else ifeq ($(GRUCODE),f3d_new) # Fast3D 2.0H
+  DEFINES += F3D_NEW=1
+else ifeq ($(GRUCODE),f3dex) # Fast3DEX
+  DEFINES += F3DEX_GBI=1 F3DEX_GBI_SHARED=1
+else ifeq ($(GRUCODE), f3dex2) # Fast3DEX2
+  DEFINES += F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
+else ifeq ($(GRUCODE), f3dex2e) # Fast3DEX2 Extended (for PC)
+  DEFINES += F3DEX_GBI_2E=1
+else ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mori)
+  $(warning Fast3DZEX is experimental. Try at your own risk.)
+  DEFINES += F3DZEX_GBI_2=1 F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
 endif
   
 # USE_QEMU_IRIX - when ido is selected, select which way to emulate IRIX programs
@@ -285,24 +287,20 @@ TEXTURE_DIR    := textures
 ACTOR_DIR      := actors
 LEVEL_DIRS     := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
 
-# MAKEFILE_PORT
-# ASM_DIRS := lib
-# ifeq ($(TARGET_N64),1)
-#   ASM_DIRS := asm $(ASM_DIRS)
-# else
-#   SRC_DIRS := $(SRC_DIRS) src/pc src/pc/gfx src/pc/audio src/pc/controller
-#   ASM_DIRS :=
-# endif
-
 # Directories containing source files
-SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin data assets asm lib sound
+SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets
+
+ASM_DIRS := lib
+ifeq ($(TARGET_N64),1)
+  ASM_DIRS := asm $(ASM_DIRS)
+else
+  SRC_DIRS := $(SRC_DIRS) src/pc src/pc/gfx src/pc/audio src/pc/controller
+  ASM_DIRS :=
+endif
 BIN_DIRS := bin bin/$(VERSION)
 
-# MAKEFILE_PORT
-# ULTRA_SRC_DIRS := lib/src lib/src/math
-# ULTRA_ASM_DIRS := lib/asm lib/data
-
-ULTRA_SRC_DIRS := lib/src lib/src/math lib/asm lib/data
+ULTRA_SRC_DIRS := lib/src lib/src/math
+ULTRA_ASM_DIRS := lib/asm lib/data
 ULTRA_BIN_DIRS := lib/bin
 
 GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
@@ -338,33 +336,29 @@ C_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C
 ifeq ($(TARGET_N64),0)
   C_FILES           := $(filter-out src/game/main.c,$(C_FILES))
 endif
-S_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.s))
-ULTRA_C_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
+S_FILES           := $(foreach dir,$(ASM_DIRS),$(wildcard $(dir)/*.s))
+ifneq ($(TARGET_N64),1)
+  ULTRA_C_FILES := \
+    alBnkfNew.c \
+    guLookAtRef.c \
+    guMtxF2L.c \
+    guNormalize.c \
+    guOrthoF.c \
+    guPerspectiveF.c \
+    guRotateF.c \
+    guScaleF.c \
+    guTranslateF.c
+
+  C_FILES := $(filter-out src/game/main.c,$(C_FILES))
+  ULTRA_C_FILES := $(addprefix lib/src/,$(ULTRA_C_FILES))
+else
+  ULTRA_C_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
+endif
 GODDARD_C_FILES   := $(foreach dir,$(GODDARD_SRC_DIRS),$(wildcard $(dir)/*.c))
-ULTRA_S_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.s))
+ifeq ($(TARGET_N64),1)
+  ULTRA_S_FILES := $(foreach dir,$(ULTRA_ASM_DIRS),$(wildcard $(dir)/*.s))
+endif
 GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c
-
-# MAKEFILE_PORT
-# # Source code files
-# ifeq ($(TARGET_N64),1)
-#   ULTRA_S_FILES := $(foreach dir,$(ULTRA_ASM_DIRS),$(wildcard $(dir)/*.s))
-# endif
-
-# ifneq ($(TARGET_N64),1)
-#   ULTRA_C_FILES := \
-#     alBnkfNew.c \
-#     guLookAtRef.c \
-#     guMtxF2L.c \
-#     guNormalize.c \
-#     guOrthoF.c \
-#     guPerspectiveF.c \
-#     guRotateF.c \
-#     guScaleF.c \
-#     guTranslateF.c
-
-#   C_FILES := $(filter-out src/game/main.c,$(C_FILES))
-#   ULTRA_C_FILES := $(addprefix lib/src/,$(ULTRA_C_FILES))
-# endif
 
 # Sound files
 SOUND_BANK_FILES    := $(wildcard sound/sound_banks/*.json)
@@ -688,9 +682,7 @@ else
   endif
 endif
 
-# MAKEFILE_PORT
-#ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS) $(ASM_DIRS) $(GODDARD_SRC_DIRS) $(ULTRA_SRC_DIRS) $(ULTRA_ASM_DIRS) $(ULTRA_BIN_DIRS) $(BIN_DIRS) $(TEXTURE_DIRS) $(TEXT_DIRS) $(SOUND_SAMPLE_DIRS) $(addprefix levels/,$(LEVEL_DIRS)) include) $(MIO0_DIR) $(addprefix $(MIO0_DIR)/,$(VERSION)) $(SOUND_BIN_DIR) $(SOUND_BIN_DIR)/sequences/$(VERSION) $(RSP_DIRS)
-ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS) $(GODDARD_SRC_DIRS) $(ULTRA_SRC_DIRS) $(ULTRA_BIN_DIRS) $(BIN_DIRS) $(TEXTURE_DIRS) $(TEXT_DIRS) $(SOUND_SAMPLE_DIRS) $(addprefix levels/,$(LEVEL_DIRS)) rsp include) $(MIO0_DIR) $(addprefix $(MIO0_DIR)/,$(VERSION)) $(SOUND_BIN_DIR) $(SOUND_BIN_DIR)/sequences/$(VERSION)
+ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS) $(ASM_DIRS) $(GODDARD_SRC_DIRS) $(ULTRA_SRC_DIRS) $(ULTRA_ASM_DIRS) $(ULTRA_BIN_DIRS) $(BIN_DIRS) $(TEXTURE_DIRS) $(TEXT_DIRS) $(SOUND_SAMPLE_DIRS) $(addprefix levels/,$(LEVEL_DIRS)) rsp include) $(MIO0_DIR) $(addprefix $(MIO0_DIR)/,$(VERSION)) $(SOUND_BIN_DIR) $(SOUND_BIN_DIR)/sequences/$(VERSION)
 
 # Make sure build directory exists before compiling anything
 DUMMY != mkdir -p $(ALL_DIRS)
