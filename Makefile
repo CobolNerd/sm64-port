@@ -17,13 +17,15 @@ DEFINES :=
 
 # Build for the N64 (turn this off for ports)
 TARGET_N64 ?= 0
+# Build for Emscripten/WebGL
+TARGET_WEB ?= 0
 
 
 # COMPILER - selects the C compiler to use
 #   ido - uses the SGI IRIS Development Option compiler, which is used to build
 #         an original matching N64 ROM
 #   gcc - uses the GNU C Compiler
-COMPILER ?= gcc
+COMPILER ?= ido
 $(eval $(call validate-option,COMPILER,ido gcc))
 
 
@@ -32,7 +34,7 @@ $(eval $(call validate-option,COMPILER,ido gcc))
 #   us - builds the 1996 North American version
 #   eu - builds the 1997 PAL version
 #   sh - builds the 1997 Japanese Shindou version, with rumble pak support
-VERSION ?= us
+VERSION ?= sh
 $(eval $(call validate-option,VERSION,jp us eu sh))
 
 ifeq      ($(VERSION),jp)
@@ -59,15 +61,10 @@ endif
 
 TARGET := sm64.$(VERSION)
 
-# Build for the N64 (turn this off for ports)
-TARGET_N64 ?= 0
-# Build for Emscripten/WebGL
-TARGET_WEB ?= 0
-
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
   NON_MATCHING := 1
-  GRUCODE := f3dex2e
+  GRUCODE := f3d_old
   TARGET_WINDOWS := 0
   ifeq ($(TARGET_WEB),0)
     ifeq ($(OS),Windows_NT)
@@ -137,26 +134,28 @@ else ifeq ($(GRUCODE),f3dzex) # Fast3DZEX (2.0J / Animal Forest - Dōbutsu no Mo
   DEFINES += F3DZEX_GBI_2=1 F3DEX_GBI_2=1 F3DEX_GBI_SHARED=1
 endif
   
-# USE_QEMU_IRIX - when ido is selected, select which way to emulate IRIX programs
-#   1 - use qemu-irix
-#   0 - statically recompile the IRIX programs
-USE_QEMU_IRIX ?= 0
-$(eval $(call validate-option,USE_QEMU_IRIX,0 1))
+ifeq ($(TARGET_N64),1)  
+  # USE_QEMU_IRIX - when ido is selected, select which way to emulate IRIX programs
+  #   1 - use qemu-irix
+  #   0 - statically recompile the IRIX programs
+  USE_QEMU_IRIX ?= 0
+  $(eval $(call validate-option,USE_QEMU_IRIX,0 1))
 
-ifeq      ($(COMPILER),ido)
-  ifeq ($(USE_QEMU_IRIX),1)
-    # Verify that qemu-irix exists
-    QEMU_IRIX ?= $(call find-command,qemu-irix)
-    ifeq (, $(QEMU_IRIX))
-      $(error Using the IDO compiler requires qemu-irix. Please install qemu-irix package or set the QEMU_IRIX environment variable to the full qemu-irix binary path)
+  ifeq      ($(COMPILER),ido)
+    ifeq ($(USE_QEMU_IRIX),1)
+      # Verify that qemu-irix exists
+      QEMU_IRIX ?= $(call find-command,qemu-irix)
+      ifeq (, $(QEMU_IRIX))
+        $(error Using the IDO compiler requires qemu-irix. Please install qemu-irix package or set the QEMU_IRIX environment variable to the full qemu-irix binary path)
+      endif
     endif
-  endif
 
-  MIPSISET := -mips2
-else ifeq ($(COMPILER),gcc)
-  NON_MATCHING := 1
-  MIPSISET     := -mips3
-  OPT_FLAGS    := -O2
+    MIPSISET := -mips2
+  else ifeq ($(COMPILER),gcc)
+    NON_MATCHING := 1
+    MIPSISET     := -mips3
+    OPT_FLAGS    := -O2
+  endif
 endif
 
 
@@ -303,26 +302,8 @@ ULTRA_BIN_DIRS := lib/bin
 
 GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
 
-ifeq ($(TARGET_N64),1)
-  ifeq ($(VERSION),eu)
-    OPT_FLAGS := -g
-  else
-    ifeq ($(VERSION),sh)
-      OPT_FLAGS := -g
-    else
-      OPT_FLAGS := -g
-    endif
-  endif
-  # Use a default opt flag for gcc
-  ifeq ($(COMPILER),gcc)
-    OPT_FLAGS := -g
-  endif
-else
-  ifeq ($(TARGET_WEB),1)
-    OPT_FLAGS := -g -g4 --source-map-base http://localhost:8080/
-  else
-    OPT_FLAGS := -g
-  endif
+ifeq ($(TARGET_WEB),1)
+  OPT_FLAGS := -g -g4 --source-map-base http://localhost:8080/
 endif
 
 # File dependencies and variables for specific files
@@ -357,12 +338,17 @@ else
   ULTRA_C_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.c))
 endif
 GODDARD_C_FILES   := $(foreach dir,$(GODDARD_SRC_DIRS),$(wildcard $(dir)/*.c))
-ifeq ($(TARGET_N64),1)
-  ULTRA_S_FILES := $(foreach dir,$(ULTRA_ASM_DIRS),$(wildcard $(dir)/*.s))
-endif
+# GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c \
+#  $(addprefix $(BUILD_DIR)/bin/,$(addsuffix _skybox.c,$(notdir $(basename $(wildcard textures/skyboxes/*.png)))))
 
 GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c \
   $(addprefix $(BUILD_DIR)/bin/,$(addsuffix _skybox.c,$(notdir $(basename $(wildcard textures/skyboxes/*.png)))))
+
+#GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c
+
+$(info GENERATED_C_FILES:        $(GENERATED_C_FILES))
+
+ULTRA_S_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.s))
 
 # Sound files
 SOUND_BANK_FILES    := $(wildcard sound/sound_banks/*.json)
@@ -384,6 +370,8 @@ O_FILES := $(foreach file,$(C_FILES),$(BUILD_DIR)/$(file:.c=.o)) \
            $(foreach file,$(S_FILES),$(BUILD_DIR)/$(file:.s=.o)) \
            $(foreach file,$(GENERATED_C_FILES),$(file:.c=.o))
 
+$(info O_FILES:        $(O_FILES))
+$(info "===========================================")
 ULTRA_O_FILES := $(foreach file,$(ULTRA_S_FILES),$(BUILD_DIR)/$(file:.s=.o)) \
                  $(foreach file,$(ULTRA_C_FILES),$(BUILD_DIR)/$(file:.c=.o))
 
@@ -527,7 +515,6 @@ else # TARGET_N64 == 0
 
   ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
   RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
-  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 
   # C preprocessor flags
   CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
@@ -572,7 +559,7 @@ else # TARGET_N64 == 0
     PLATFORM_LDFLAGS += -lgdi32 -static
   endif
   
-  GFX_CFLAGS += -DWIDESCREEN
+  # GFX_CFLAGS += -DWIDESCREEN
   PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
   
   # Check code syntax with host compiler
@@ -893,69 +880,71 @@ $(BUILD_DIR)/%.o: %.cpp
 	@$(CXX) -fsyntax-only $(CFLAGS) -MMD -MP -MT $@ -MF $(BUILD_DIR)/$*.d $<
 	$(V)$(CXX) -c $(CFLAGS) -o $@ $<
 
-# Alternate compiler flags needed for matching
-ifeq ($(COMPILER),ido)
-  $(BUILD_DIR)/levels/%/leveldata.o: OPT_FLAGS := -g
-  $(BUILD_DIR)/actors/%.o:           OPT_FLAGS := -g
-  $(BUILD_DIR)/bin/%.o:              OPT_FLAGS := -g
-  $(BUILD_DIR)/src/goddard/%.o:      OPT_FLAGS := -g
-  $(BUILD_DIR)/src/goddard/%.o:      MIPSISET := -mips1
-  $(BUILD_DIR)/lib/src/%.o:          OPT_FLAGS :=
-  $(BUILD_DIR)/lib/src/math/%.o:     OPT_FLAGS := -O2
-  $(BUILD_DIR)/lib/src/math/ll%.o:   OPT_FLAGS :=
-  $(BUILD_DIR)/lib/src/math/ll%.o:   MIPSISET := -mips3 -32
-  $(BUILD_DIR)/lib/src/ldiv.o:       OPT_FLAGS := -O2
-  $(BUILD_DIR)/lib/src/string.o:     OPT_FLAGS := -O2
-  $(BUILD_DIR)/lib/src/gu%.o:        OPT_FLAGS := -O3
-  $(BUILD_DIR)/lib/src/al%.o:        OPT_FLAGS := -O3
-  # For the asm-processor, since it doesn't support -O3. Probably not actually compiled with these flags.
-  ifeq ($(VERSION),sh)
-    $(BUILD_DIR)/lib/src/unk_shindou_file.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/func_sh_80304D20.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/_Printf.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/contramread.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/osPfsIsPlug.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/osAiSetFrequency.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/contramwrite.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/sprintf.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Litob.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Ldtob.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/osDriveRomInit.o: OPT_FLAGS := -g
-  endif
-  ifeq ($(VERSION),eu)
-    $(BUILD_DIR)/lib/src/_Litob.o:   OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Ldtob.o:   OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Printf.o:  OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/sprintf.o:  OPT_FLAGS := -O3
+ifeq ($(TARGET_N64),1)  
+  # Alternate compiler flags needed for matching
+  ifeq ($(COMPILER),ido)
+    $(BUILD_DIR)/levels/%/leveldata.o: OPT_FLAGS := -g
+    $(BUILD_DIR)/actors/%.o:           OPT_FLAGS := -g
+    $(BUILD_DIR)/bin/%.o:              OPT_FLAGS := -g
+    $(BUILD_DIR)/src/goddard/%.o:      OPT_FLAGS := -g
+    $(BUILD_DIR)/src/goddard/%.o:      MIPSISET := -mips1
+    $(BUILD_DIR)/lib/src/%.o:          OPT_FLAGS :=
+    $(BUILD_DIR)/lib/src/math/%.o:     OPT_FLAGS := -O2
+    $(BUILD_DIR)/lib/src/math/ll%.o:   OPT_FLAGS :=
+    $(BUILD_DIR)/lib/src/math/ll%.o:   MIPSISET := -mips3 -32
+    $(BUILD_DIR)/lib/src/ldiv.o:       OPT_FLAGS := -O2
+    $(BUILD_DIR)/lib/src/string.o:     OPT_FLAGS := -O2
+    $(BUILD_DIR)/lib/src/gu%.o:        OPT_FLAGS := -O3
+    $(BUILD_DIR)/lib/src/al%.o:        OPT_FLAGS := -O3
+    # For the asm-processor, since it doesn't support -O3. Probably not actually compiled with these flags.
+    ifeq ($(VERSION),sh)
+      $(BUILD_DIR)/lib/src/unk_shindou_file.o: OPT_FLAGS := -O1
+      $(BUILD_DIR)/lib/src/func_sh_80304D20.o: OPT_FLAGS := -O1
+      $(BUILD_DIR)/lib/src/_Printf.o: OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/contramread.o: OPT_FLAGS := -O1
+      $(BUILD_DIR)/lib/src/osPfsIsPlug.o: OPT_FLAGS := -O1
+      $(BUILD_DIR)/lib/src/osAiSetFrequency.o: OPT_FLAGS := -O1
+      $(BUILD_DIR)/lib/src/contramwrite.o: OPT_FLAGS := -O1
+      $(BUILD_DIR)/lib/src/sprintf.o: OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/_Litob.o: OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/_Ldtob.o: OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/osDriveRomInit.o: OPT_FLAGS := -g
+    endif
+    ifeq ($(VERSION),eu)
+      $(BUILD_DIR)/lib/src/_Litob.o:   OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/_Ldtob.o:   OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/_Printf.o:  OPT_FLAGS := -O3
+      $(BUILD_DIR)/lib/src/sprintf.o:  OPT_FLAGS := -O3
 
-    # Enable loop unrolling except for external.c (external.c might also have used
-    # unrolling, but it makes one loop harder to match).
-    # For all audio files other than external.c and port_eu.c, put string literals
-    # in .data. (In Shindou, the port_eu.c string literals also moved to .data.)
-    $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS := -O2 -use_readwrite_const
-    $(BUILD_DIR)/src/audio/port_eu.o:  OPT_FLAGS := -O2
-    $(BUILD_DIR)/src/audio/external.o: OPT_FLAGS := -O2 -Wo,-loopunroll,0
-  endif
-  ifeq ($(VERSION_JP_US),true)
-    $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS := -O2 -Wo,-loopunroll,0
-    $(BUILD_DIR)/src/audio/load.o:     OPT_FLAGS := -O2 -framepointer -Wo,-loopunroll,0
-  endif
-  ifeq ($(VERSION_JP_US),true)
-    # The source-to-source optimizer copt is enabled for audio. This makes it use
-    # acpp, which needs -Wp,-+ to handle C++-style comments.
-    # All other files than external.c should really use copt, but only a few have
-    # been matched so far.
-    $(BUILD_DIR)/src/audio/effects.o:   OPT_FLAGS := -O2 -Wo,-loopunroll,0 -sopt,-inline=sequence_channel_process_sound,-scalaroptimize=1 -Wp,-+
-    $(BUILD_DIR)/src/audio/synthesis.o: OPT_FLAGS := -O2 -sopt,-scalaroptimize=1 -Wp,-+
-  endif
+      # Enable loop unrolling except for external.c (external.c might also have used
+      # unrolling, but it makes one loop harder to match).
+      # For all audio files other than external.c and port_eu.c, put string literals
+      # in .data. (In Shindou, the port_eu.c string literals also moved to .data.)
+      $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS := -O2 -use_readwrite_const
+      $(BUILD_DIR)/src/audio/port_eu.o:  OPT_FLAGS := -O2
+      $(BUILD_DIR)/src/audio/external.o: OPT_FLAGS := -O2 -Wo,-loopunroll,0
+    endif
+    ifeq ($(VERSION_JP_US),true)
+      $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS := -O2 -Wo,-loopunroll,0
+      $(BUILD_DIR)/src/audio/load.o:     OPT_FLAGS := -O2 -framepointer -Wo,-loopunroll,0
+    endif
+    ifeq ($(VERSION_JP_US),true)
+      # The source-to-source optimizer copt is enabled for audio. This makes it use
+      # acpp, which needs -Wp,-+ to handle C++-style comments.
+      # All other files than external.c should really use copt, but only a few have
+      # been matched so far.
+      $(BUILD_DIR)/src/audio/effects.o:   OPT_FLAGS := -O2 -Wo,-loopunroll,0 -sopt,-inline=sequence_channel_process_sound,-scalaroptimize=1 -Wp,-+
+      $(BUILD_DIR)/src/audio/synthesis.o: OPT_FLAGS := -O2 -sopt,-scalaroptimize=1 -Wp,-+
+    endif
 
-# Add a target for build/eu/src/audio/*.copt to make it easier to see debug
-$(BUILD_DIR)/src/audio/%.acpp: src/audio/%.c
-	$(ACPP) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) -D__sgi -+ $< > $@
-$(BUILD_DIR)/src/audio/%.copt: $(BUILD_DIR)/src/audio/%.acpp
-	$(COPT) -signed -I=$< -CMP=$@ -cp=i -scalaroptimize=1 $(COPTFLAGS)
-$(BUILD_DIR)/src/audio/seqplayer.copt: COPTFLAGS := -inline_manual
+    # Add a target for build/eu/src/audio/*.copt to make it easier to see debug
+    $(BUILD_DIR)/src/audio/%.acpp: src/audio/%.c
+      $(ACPP) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) -D__sgi -+ $< > $@
+    $(BUILD_DIR)/src/audio/%.copt: $(BUILD_DIR)/src/audio/%.acpp
+      $(COPT) -signed -I=$< -CMP=$@ -cp=i -scalaroptimize=1 $(COPTFLAGS)
+    $(BUILD_DIR)/src/audio/seqplayer.copt: COPTFLAGS := -inline_manual
 
+  endif
 endif
 
 # Assemble assembly code

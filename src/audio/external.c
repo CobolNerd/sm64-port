@@ -401,11 +401,14 @@ struct SequenceQueueItem sBackgroundMusicQueue[MAX_BACKGROUND_MUSIC_QUEUE_SIZE];
 s32 unk_sh_8034754C;
 #endif
 
-#ifdef VERSION_EU
+#if defined(VERSION_EU) || defined(VERSION_SH)
 OSMesgQueue OSMesgQueue0;
 OSMesgQueue OSMesgQueue1;
 OSMesgQueue OSMesgQueue2;
 OSMesgQueue OSMesgQueue3;
+#endif
+
+#if defined(VERSION_EU)
 extern OSMesgQueue *OSMesgQueues[];
 
 struct EuAudioCmd sAudioCmd[0x100];

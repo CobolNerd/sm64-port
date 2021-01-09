@@ -3,6 +3,11 @@
 #include "data.h"
 #include "effects.h"
 
+extern struct OSMesgQueue OSMesgQueue0;
+extern struct OSMesgQueue OSMesgQueue1;
+extern struct OSMesgQueue OSMesgQueue2;
+extern struct OSMesgQueue OSMesgQueue3;
+
 #ifdef VERSION_EU
 struct ReverbSettingsEU sReverbSettings[] = {
     { 0x04, 0x0c, 0x2fff },
@@ -888,19 +893,16 @@ s32 gAudioInitPoolSize = DOUBLE_SIZE_ON_64_BIT(AUDIO_INIT_POOL_SIZE);
 volatile s32 gAudioLoadLock = AUDIO_LOCK_UNINITIALIZED;
 #endif
 
-#if defined(VERSION_EU) || defined(VERSION_SH)
+#if defined(VERSION_EU)
 u8 bufferDelete2[12] = { 0 };
 u8 D_EU_80302010 = 0;
 u8 D_EU_80302014 = 0;
-
-OSMesgQueue OSMesgQueue0;
-OSMesgQueue OSMesgQueue1;
-OSMesgQueue OSMesgQueue2;
-OSMesgQueue OSMesgQueue3;
-
-struct OSMesgQueue *OSMesgQueues[4] = { &OSMesgQueue0, &OSMesgQueue1, &OSMesgQueue2, &OSMesgQueue3 };
 #elif defined(VERSION_JP) || defined(VERSION_US)
 s8 sUnused8033EF8 = 24;
+#endif
+
+#if defined(VERSION_EU) || defined(VERSION_SH)
+struct OSMesgQueue *OSMesgQueues[4] = { &OSMesgQueue0, &OSMesgQueue1, &OSMesgQueue2, &OSMesgQueue3 };
 #endif
 
 // .bss
