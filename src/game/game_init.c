@@ -367,6 +367,9 @@ void display_and_vsync(void) {
         frameBufferIndex = 0;
     }
     gGlobalTimer++;
+    
+    //TODO: implement/test
+    gNumVblanks++;
 }
 
 // this function records distinct inputs over a 255-frame interval to RAM locations and was likely

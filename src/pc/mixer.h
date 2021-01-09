@@ -36,18 +36,25 @@ void aMixImpl(int16_t gain, uint16_t in_addr, uint16_t out_addr);
 
 #define aSegment(pkt, s, b) do { } while(0)
 #define aClearBuffer(pkt, d, c) aClearBufferImpl(d, c)
+#ifdef VERSION_SH
+#define aLoadBuffer(pkt, s, d, c) aLoadBufferImpl(s)
+#define aSaveBuffer(pkt, s, d, c) aSaveBufferImpl(s)
+#define aInterleave(pkt, o, l, r, c) aInterleaveImpl(l, r)
+#define aEnvMixer(pkt, inBuf, nSamples, bit1, bit2, bit3, dryLeft, dryRight, wetLeft, wetRight) aEnvMixerImpl(inBuf, nSamples)
+#else //TODO: implement/test
 #define aLoadBuffer(pkt, s) aLoadBufferImpl(s)
 #define aSaveBuffer(pkt, s) aSaveBufferImpl(s)
+#define aInterleave(pkt, l, r) aInterleaveImpl(l, r)
+#define aEnvMixer(pkt, f, s) aEnvMixerImpl(f, s)
+#endif
 #define aLoadADPCM(pkt, c, d) aLoadADPCMImpl(c, d)
 #define aSetBuffer(pkt, f, i, o, c) aSetBufferImpl(f, i, o, c)
 #define aSetVolume(pkt, f, v, t, r) aSetVolumeImpl(f, v, t, r)
 #define aSetVolume32(pkt, f, v, tr) aSetVolume(pkt, f, v, (int16_t)((tr) >> 16), (int16_t)(tr))
-#define aInterleave(pkt, l, r) aInterleaveImpl(l, r)
 #define aDMEMMove(pkt, i, o, c) aDMEMMoveImpl(i, o, c)
 #define aSetLoop(pkt, a) aSetLoopImpl(a)
 #define aADPCMdec(pkt, f, s) aADPCMdecImpl(f, s)
 #define aResample(pkt, f, p, s) aResampleImpl(f, p, s)
-#define aEnvMixer(pkt, f, s) aEnvMixerImpl(f, s)
 #define aMix(pkt, f, g, i, o) aMixImpl(g, i, o)
 
 #endif
