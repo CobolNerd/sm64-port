@@ -7828,33 +7828,46 @@ chan_end
   .layer_3146:
   layer_delay 0x6
 
-  .ifdef VERSION_SH
-    .set RED_COIN_NOTE_VELOCITY_SUB, 10
-  .else
-    .set RED_COIN_NOTE_VELOCITY_SUB, 0
-  .endif
-
   .layer_3148:
   layer_call .transpose_by_coin_index
-  layer_note0 46, 0xc, 75 - RED_COIN_NOTE_VELOCITY_SUB, 20
-  layer_note0 45, 0xc, 75 - RED_COIN_NOTE_VELOCITY_SUB, 20
-  layer_note0 46, 0xc, 75 - RED_COIN_NOTE_VELOCITY_SUB, 20
-  layer_note0 58, 0x10, 80 - RED_COIN_NOTE_VELOCITY_SUB, 80
-  layer_note0 58, 0x10, 45 - RED_COIN_NOTE_VELOCITY_SUB, 80
-  layer_note0 58, 0x10, 20 - RED_COIN_NOTE_VELOCITY_SUB, 80
-  layer_note0 58, 0x10, 15 - RED_COIN_NOTE_VELOCITY_SUB, 80
-
+  .ifdef VERSION_SH
+    layer_note0 46, 0xc, 65, 20
+    layer_note0 45, 0xc, 65, 20
+    layer_note0 46, 0xc, 65, 20
+    layer_note0 58, 0x10, 70, 80
+    layer_note0 58, 0x10, 35, 80
+    layer_note0 58, 0x10, 10, 80
+    layer_note0 58, 0x10, 5, 80
+  .else
+    layer_note0 46, 0xc, 75, 20
+    layer_note0 45, 0xc, 75, 20
+    layer_note0 46, 0xc, 75, 20
+    layer_note0 58, 0x10, 80, 80
+    layer_note0 58, 0x10, 45, 80
+    layer_note0 58, 0x10, 20, 80
+    layer_note0 58, 0x10, 15, 80
+  .endif
   layer_end
 
   .layer_3168:
   layer_call .transpose_by_coin_index
-  layer_note0 41, 0xc, 75 - RED_COIN_NOTE_VELOCITY_SUB, 20
-  layer_note0 40, 0xc, 75 - RED_COIN_NOTE_VELOCITY_SUB, 20
-  layer_note0 41, 0xc, 75 - RED_COIN_NOTE_VELOCITY_SUB, 20
-  layer_note0 53, 0x10, 80 - RED_COIN_NOTE_VELOCITY_SUB, 80
-  layer_note0 53, 0x10, 45 - RED_COIN_NOTE_VELOCITY_SUB, 80
-  layer_note0 53, 0x10, 20 - RED_COIN_NOTE_VELOCITY_SUB, 80
-  layer_note0 53, 0x10, 15 - RED_COIN_NOTE_VELOCITY_SUB, 80
+  .ifdef VERSION_SH
+    layer_note0 41, 0xc, 65, 20
+    layer_note0 40, 0xc, 65, 20
+    layer_note0 41, 0xc, 65, 20
+    layer_note0 53, 0x10, 70, 80
+    layer_note0 53, 0x10, 35, 80
+    layer_note0 53, 0x10, 10, 80
+    layer_note0 53, 0x10, 5, 80
+  .else
+    layer_note0 41, 0xc, 75, 20
+    layer_note0 40, 0xc, 75, 20
+    layer_note0 41, 0xc, 75, 20
+    layer_note0 53, 0x10, 80, 80
+    layer_note0 53, 0x10, 45, 80
+    layer_note0 53, 0x10, 20, 80
+    layer_note0 53, 0x10, 15, 80
+  .endif
   layer_end
 
   .transpose_by_coin_index:
