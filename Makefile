@@ -292,7 +292,7 @@ ifeq ($(TARGET_N64),1)
   ASM_DIRS := asm $(ASM_DIRS)
   SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin data assets asm lib sound
 else
-  SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets src/pc src/pc/gfx src/pc/audio src/pc/controller
+  SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets sound src/pc src/pc/gfx src/pc/audio src/pc/controller
   ASM_DIRS :=
 endif
 BIN_DIRS := bin bin/$(VERSION)
@@ -334,6 +334,11 @@ C_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C
 ifeq ($(TARGET_N64),0)
   C_FILES           := $(filter-out src/game/main.c,$(C_FILES))
 endif
+
+ifeq ($(TARGET_N64),0)
+  CXX_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.cpp))
+endif
+
 S_FILES           := $(foreach dir,$(ASM_DIRS),$(wildcard $(dir)/*.s))
 ifneq ($(TARGET_N64),1)
   ULTRA_C_FILES := \
@@ -355,7 +360,9 @@ GODDARD_C_FILES   := $(foreach dir,$(GODDARD_SRC_DIRS),$(wildcard $(dir)/*.c))
 ifeq ($(TARGET_N64),1)
   ULTRA_S_FILES := $(foreach dir,$(ULTRA_ASM_DIRS),$(wildcard $(dir)/*.s))
 endif
-GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c
+
+GENERATED_C_FILES := $(BUILD_DIR)/assets/mario_anim_data.c $(BUILD_DIR)/assets/demo_data.c \
+  $(addprefix $(BUILD_DIR)/bin/,$(addsuffix _skybox.c,$(notdir $(basename $(wildcard textures/skyboxes/*.png)))))
 
 # Sound files
 SOUND_BANK_FILES    := $(wildcard sound/sound_banks/*.json)
@@ -373,6 +380,7 @@ SOUND_SEQUENCE_FILES := \
 
 # Object files
 O_FILES := $(foreach file,$(C_FILES),$(BUILD_DIR)/$(file:.c=.o)) \
+           $(foreach file,$(CXX_FILES),$(BUILD_DIR)/$(file:.cpp=.o)) \
            $(foreach file,$(S_FILES),$(BUILD_DIR)/$(file:.s=.o)) \
            $(foreach file,$(GENERATED_C_FILES),$(file:.c=.o))
 
@@ -575,6 +583,7 @@ else # TARGET_N64 == 0
     CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
   endif
 
+  ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
   LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 endif
 
@@ -878,6 +887,11 @@ $(BUILD_DIR)/%.o: $(BUILD_DIR)/%.c
 	$(call print,Compiling:,$<,$@)
 	@$(CC_CHECK) $(CC_CHECK_CFLAGS) -MMD -MP -MT $@ -MF $(BUILD_DIR)/$*.d $<
 	$(V)$(CC) -c $(CFLAGS) -o $@ $<
+
+$(BUILD_DIR)/%.o: %.cpp
+	$(call print,Compiling:,$<,$@)
+	@$(CXX) -fsyntax-only $(CFLAGS) -MMD -MP -MT $@ -MF $(BUILD_DIR)/$*.d $<
+	$(V)$(CXX) -c $(CFLAGS) -o $@ $<
 
 # Alternate compiler flags needed for matching
 ifeq ($(COMPILER),ido)
