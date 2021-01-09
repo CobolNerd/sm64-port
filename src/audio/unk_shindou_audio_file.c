@@ -15,18 +15,12 @@ extern s32 D_SH_80314FC8;
 extern struct SPTask *D_SH_80314FCC;
 extern u8 D_SH_80315098;
 extern u8 D_SH_8031509C;
-extern OSMesgQueue *OSMesgQueues[];
-extern struct OSMesgQueue OSMesgQueue0;
-extern struct OSMesgQueue OSMesgQueue1;
-extern struct OSMesgQueue OSMesgQueue2;
-extern struct OSMesgQueue OSMesgQueue3;
 
 void func_sh_802f62e0(s32 playerIndex, s32 numFrames);
 void func_sh_802f6288(s32 arg0, s32 numFrames);
 void func_sh_802f6554(u32 arg0);
 
 struct SPTask *func_sh_802f5a80(void) {
-#ifdef TARGET_N64
     u32 samplesRemainingInAI;
     s32 writtenCmds;
     s32 index;
@@ -147,38 +141,7 @@ struct SPTask *func_sh_802f5a80(void) {
         D_SH_80314FCC = gAudioTask;
         return NULL;
     }
-#else
-    return NULL;
 }
-#endif
-
-#ifndef TARGET_N64
-struct SPTask *create_next_audio_frame_task(void) {
-    return NULL;
-}
-
-void create_next_audio_buffer(s16 *samples, u32 num_samples) {
-    s32 writtenCmds;
-    OSMesg msg;
-    gAudioFrameCount++;
-    decrease_sample_dma_ttls();
-    if (osRecvMesg(OSMesgQueues[2], &msg, 0) != -1) {
-        gAudioResetPresetIdToLoad = (u8) (s32) msg;
-        gAudioResetStatus = 5;
-    }
-
-    if (gAudioResetStatus != 0) {
-        audio_reset_session();
-        gAudioResetStatus = 0;
-    }
-    if (osRecvMesg(OSMesgQueues[1], &msg, OS_MESG_NOBLOCK) != -1) {
-        func_sh_802f6554((u32) msg);
-    }
-    synthesis_execute(gAudioCmdBuffers[0], &writtenCmds, samples, num_samples);
-    gAudioRandom = ((gAudioRandom + gAudioFrameCount) * gAudioFrameCount);
-    gAudioRandom = gAudioRandom + writtenCmds / 8;
-}
-#endif
 
 void func_sh_802f5fb8(struct EuAudioCmd *cmd) {
     s32 i;

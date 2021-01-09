@@ -516,7 +516,7 @@ void read_controller_inputs(void) {
         osRecvMesg(&gSIEventMesgQueue, &D_80339BEC, OS_MESG_BLOCK);
         osContGetReadData(&gControllerPads[0]);
 #ifdef VERSION_SH
-        //release_rumble_pak_control();
+        release_rumble_pak_control();
 #endif
     }
     run_demo_inputs();
@@ -626,7 +626,7 @@ void thread5_game_loop(UNUSED void *arg) {
 
     setup_game_memory();
 #ifdef VERSION_SH
-    //init_rumble_pak_scheduler_queue();
+    init_rumble_pak_scheduler_queue();
 #endif
     init_controllers();
 #ifdef VERSION_SH
@@ -672,7 +672,7 @@ void game_loop_one_iteration(void) {
         // read_controller_inputs is called later.
         if (gControllerBits) {
 #ifdef VERSION_SH
-            // block_until_rumble_pak_free();
+            block_until_rumble_pak_free();
 #endif
             osContStartReadData(&gSIEventMesgQueue);
         }
