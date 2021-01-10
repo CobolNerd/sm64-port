@@ -211,7 +211,7 @@ void audio_dma_copy_async(uintptr_t devAddr, void *vAddr, size_t nbytes, OSMesgQ
  */
 #ifndef VERSION_SH
 void audio_dma_partial_copy_async(uintptr_t *devAddr, u8 **vAddr, ssize_t *remaining, OSMesgQueue *queue, OSIoMesg *mesg) {
-    debug_printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
+    //debug_printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
 #if defined(VERSION_EU)
     ssize_t transfer = (*remaining >= 0x1000 ? 0x1000 : *remaining);
 #else
@@ -222,7 +222,7 @@ void audio_dma_partial_copy_async(uintptr_t *devAddr, u8 **vAddr, ssize_t *remai
     osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, *devAddr, *vAddr, transfer, queue);
     *devAddr += transfer;
     *vAddr += transfer;
-    debug_printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
+    //debug_printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
 
 }
 #endif
@@ -991,12 +991,13 @@ void *func_sh_802f3764(s32 poolIdx, s32 idx, s32 *arg2) {
 }
 
 s32 func_sh_802f39a0(s32 arg0, s32 idx) {
-    ALSeqFile *f;
+    // TODO: Shindou - fix audio, continue debugging from here
+    // ALSeqFile *f;
 
-    f = get_audio_file_header(arg0);
-    if (f->seqArray[idx].len == 0) {
-        idx = (s32) f->seqArray[idx].offset; // TODO: something doesn't seem right here...
-    }
+    // f = get_audio_file_header(arg0);
+    // if (f->seqArray[idx].len == 0) {
+    //     idx = (s32) f->seqArray[idx].offset; // TODO: something doesn't seem right here...
+    // }
     return idx;
 }
 
@@ -1250,6 +1251,7 @@ void func_sh_802f3d78(uintptr_t devAddr, void *vAddr, size_t nbytes, s32 arg3) {
 }
 
 s32 func_sh_802f3dd0(OSIoMesg *m, s32 pri, s32 direction, uintptr_t devAddr, void *dramAddr, s32 size, OSMesgQueue *retQueue, s32 medium, const char *arg8) {
+#ifdef TARGET_N64
     OSPiHandle *handle;
     if (gAudioLoadLockSH >= 0x11U) {
         return -1;
@@ -1274,6 +1276,10 @@ s32 func_sh_802f3dd0(OSIoMesg *m, s32 pri, s32 direction, uintptr_t devAddr, voi
     m->size = size;
     handle->transferInfo.cmdType = 2;
     osEPiStartDma(handle, m, direction);
+#else
+// TODO: implement in Shindou port version
+#endif
+
     return 0;
 }
 

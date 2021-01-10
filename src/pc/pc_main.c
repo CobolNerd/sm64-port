@@ -46,10 +46,9 @@ OSMesgQueue gSIEventMesgQueue;
 
 s8 gResetTimer;
 s8 D_8032C648;
-s8 gDebugLevelSelect;
-s8 gShowProfiler;
-s8 gShowDebugText;
-u32 gNumVblanks = 0;
+s8 gDebugLevelSelect = FALSE;
+s8 gShowProfiler = TRUE;
+s8 gShowDebugText = TRUE;
 
 static struct AudioAPI *audio_api;
 static struct GfxWindowManagerAPI *wm_api;
@@ -85,7 +84,7 @@ void send_display_list(struct SPTask *spTask) {
 #endif
 
 void produce_one_frame(void) {
-    debug_printf("DEBUGRR: produce_one_frame - START\n");
+    //debug_printf("DEBUGRR: produce_one_frame - START\n");
 
     gfx_start_frame();
     game_loop_one_iteration();
@@ -99,14 +98,14 @@ void produce_one_frame(void) {
             audio_cnt = 2;
         }
         u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
-        create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
+        //create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
     }
     //printf("Audio samples before submitting: %d\n", audio_api->buffered());
     audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
     
     gfx_end_frame();
 
-    debug_printf("DEBUGRR: produce_one_frame - END\n");
+    //debug_printf("DEBUGRR: produce_one_frame - END\n");
 }
 
 #ifdef TARGET_WEB
@@ -235,7 +234,7 @@ void main_func(void) {
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 int WINAPI WinMain(UNUSED HINSTANCE hInstance, UNUSED HINSTANCE hPrevInstance, UNUSED LPSTR pCmdLine, UNUSED int nCmdShow) {
-    //SetStdOutToNewConsole();
+    SetStdOutToNewConsole();
     main_func();
     return 0;
 }

@@ -5,6 +5,8 @@
 #include "main.h"
 #include "rumble_init.h"
 
+// TODO: implement functionality for pc port versions
+
 #ifdef VERSION_SH
 
 OSThread gRumblePakThread;
@@ -26,10 +28,12 @@ s32 sRumblePakActive = 0;
 s32 sRumblePakErrorCount = 0;
 s32 gRumblePakTimer = 0;
 
+#ifdef TARGET_N64
 // These void* are OSPfs* but we don't have that header
 extern s32 osMotorStop(void *);
 extern s32 osMotorStart(void *);
 extern u32 osMotorInit(OSMesgQueue *, void *, s32);
+#endif
 
 void init_rumble_pak_scheduler_queue(void) {
     osCreateMesgQueue(&gRumblePakSchedulerMesgQueue, gRumblePakSchedulerMesgBuf, 1);
@@ -50,6 +54,7 @@ static void start_rumble(void) {
         return;
     }
 
+#ifdef TARGET_N64
     block_until_rumble_pak_free();
 
     if (!osMotorStart(&gRumblePakPfs)) {
@@ -59,6 +64,7 @@ static void start_rumble(void) {
     }
 
     release_rumble_pak_control();
+#endif
 }
 
 static void stop_rumble(void) {
@@ -66,6 +72,7 @@ static void stop_rumble(void) {
         return;
     }
 
+#ifdef TARGET_N64
     block_until_rumble_pak_free();
 
     if (!osMotorStop(&gRumblePakPfs)) {
@@ -75,9 +82,11 @@ static void stop_rumble(void) {
     }
 
     release_rumble_pak_control();
+#endif
 }
 
 static void update_rumble_pak(void) {
+#ifdef TARGET_N64
     if (gResetTimer > 0) {
         stop_rumble();
         return;
@@ -120,6 +129,7 @@ static void update_rumble_pak(void) {
     if (gCurrRumbleSettings.unk0A > 0) {
         gCurrRumbleSettings.unk0A--;
     }
+#endif
 }
 
 static void update_rumble_data_queue(void) {
@@ -238,6 +248,7 @@ void func_sh_8024CA04(void) {
 }
 
 static void thread6_rumble_loop(UNUSED void *a0) {
+#ifdef TARGET_N64
     OSMesg msg;
 
     cancel_rumble();
@@ -264,9 +275,11 @@ static void thread6_rumble_loop(UNUSED void *a0) {
             gRumblePakTimer--;
         }
     }
+#endif
 }
 
 void cancel_rumble(void) {
+#ifdef TARGET_N64
     sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
 
     if (sRumblePakActive) {
@@ -281,12 +294,15 @@ void cancel_rumble(void) {
     gCurrRumbleSettings.unk0A = 0;
 
     gRumblePakTimer = 0;
+#endif
 }
 
 void create_thread_6(void) {
+#ifdef TARGET_N64
     osCreateMesgQueue(&gRumbleThreadVIMesgQueue, gRumbleThreadVIMesgBuf, 1);
     osCreateThread(&gRumblePakThread, 6, thread6_rumble_loop, NULL, gThread6Stack + 0x2000, 30);
     osStartThread(&gRumblePakThread);
+#endif
 }
 
 void rumble_thread_update_vi(void) {

@@ -407,7 +407,7 @@ void render_textrect(s32 x, s32 y, s32 pos) {
  * a for loop.
  */
 void render_text_labels(void) {
-    debug_printf("DEBUGRR: render_text_labels - START\n");
+    //debug_printf("DEBUGRR: render_text_labels - START\n");
 
     s32 i;
     s32 j;
@@ -422,7 +422,7 @@ void render_text_labels(void) {
 
     if (mtx == NULL) {
         sTextLabelsCount = 0;
-        debug_printf("DEBUGRR: render_text_labels - END - mtx == NULL\n");
+        //debug_printf("DEBUGRR: render_text_labels - END - mtx == NULL\n");
 
         return;
     }
@@ -432,11 +432,11 @@ void render_text_labels(void) {
     gSPMatrix(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(mtx), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
 
-    debug_printf("DEBUGRR: render_text_labels - sTextLabelsCount: %d\n", sTextLabelsCount);
+    //debug_printf("DEBUGRR: render_text_labels - sTextLabelsCount: %d\n", sTextLabelsCount);
 
     for (i = 0; i < sTextLabelsCount; i++) {
         for (j = 0; j < sTextLabels[i]->length; j++) {
-            debug_printf("DEBUGRR: render_text_labels - glyphIndex: %c\n", sTextLabels[i]->buffer[j]);
+            //debug_printf("DEBUGRR: render_text_labels - glyphIndex: %c\n", sTextLabels[i]->buffer[j]);
             glyphIndex = char_to_glyph_index(sTextLabels[i]->buffer[j]);
 
             if (glyphIndex != GLYPH_SPACE) {
@@ -467,5 +467,5 @@ void render_text_labels(void) {
 
     sTextLabelsCount = 0;
 
-    debug_printf("DEBUGRR: render_text_labels - END\n");
+    //debug_printf("DEBUGRR: render_text_labels - END\n");
 }

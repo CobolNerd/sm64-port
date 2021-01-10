@@ -638,7 +638,7 @@ void thread5_game_loop(UNUSED void *arg) {
 
     // point levelCommandAddr to the entry point into the level script data.
     levelCommandAddr = segmented_to_virtual(level_script_entry);
-    debug_printf("DEBUGRR: thread5_game_loop - level_script_entry type %d\n", level_script_entry[0]);
+    //debug_printf("DEBUGRR: thread5_game_loop - level_script_entry type %d\n", level_script_entry[0]);
 
     play_music(SEQ_PLAYER_SFX, SEQUENCE_ARGS(0, SEQ_SOUND_PLAYER), 0);
     set_sound_mode(save_file_get_sound_mode());
@@ -650,11 +650,11 @@ void thread5_game_loop(UNUSED void *arg) {
 #else
     gGlobalTimer++;    
 
-    debug_printf("DEBUGRR: thread5_game_loop\n");
+    //debug_printf("DEBUGRR: thread5_game_loop\n");
 }
 
 void game_loop_one_iteration(void) {
-    debug_printf("DEBUGRR: game_loop_one_iteration - START\n");
+    //debug_printf("DEBUGRR: game_loop_one_iteration - START\n");
 
 #endif
         // if the reset timer is active, run the process to reset the game.
@@ -682,7 +682,7 @@ void game_loop_one_iteration(void) {
         read_controller_inputs();
 
         levelCommandAddr = level_script_execute(levelCommandAddr);
-        debug_printf("DEBUGRR: game_loop_one_iteration - level_script_entry type %d\n", level_script_entry[0]);
+        //debug_printf("DEBUGRR: game_loop_one_iteration - level_script_entry type %d\n", level_script_entry[0]);
 
         display_and_vsync();
 
@@ -697,5 +697,5 @@ void game_loop_one_iteration(void) {
 #ifdef TARGET_N64
     }
 #endif
-    debug_printf("DEBUGRR: game_loop_one_iteration - END\n");
+    //debug_printf("DEBUGRR: game_loop_one_iteration - END\n");
 }
