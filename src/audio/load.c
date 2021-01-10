@@ -211,7 +211,7 @@ void audio_dma_copy_async(uintptr_t devAddr, void *vAddr, size_t nbytes, OSMesgQ
  */
 #ifndef VERSION_SH
 void audio_dma_partial_copy_async(uintptr_t *devAddr, u8 **vAddr, ssize_t *remaining, OSMesgQueue *queue, OSIoMesg *mesg) {
-    printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
+    debug_printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
 #if defined(VERSION_EU)
     ssize_t transfer = (*remaining >= 0x1000 ? 0x1000 : *remaining);
 #else
@@ -222,7 +222,7 @@ void audio_dma_partial_copy_async(uintptr_t *devAddr, u8 **vAddr, ssize_t *remai
     osPiStartDma(mesg, OS_MESG_PRI_NORMAL, OS_READ, *devAddr, *vAddr, transfer, queue);
     *devAddr += transfer;
     *vAddr += transfer;
-    printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
+    debug_printf("DEBUGRR: audio_dma_partial_copy_async - START\n");
 
 }
 #endif

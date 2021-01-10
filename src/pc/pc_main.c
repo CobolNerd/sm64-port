@@ -37,6 +37,8 @@
 
 #include "compat.h"
 
+#include "util.h"
+
 #define CONFIG_FILE "sm64config.txt"
 
 OSMesg D_80339BEC;
@@ -83,7 +85,7 @@ void send_display_list(struct SPTask *spTask) {
 #endif
 
 void produce_one_frame(void) {
-    printf("DEBUGRR: produce_one_frame - START\n");
+    debug_printf("DEBUGRR: produce_one_frame - START\n");
 
     gfx_start_frame();
     game_loop_one_iteration();
@@ -104,7 +106,7 @@ void produce_one_frame(void) {
     
     gfx_end_frame();
 
-    printf("DEBUGRR: produce_one_frame - END\n");
+    debug_printf("DEBUGRR: produce_one_frame - END\n");
 }
 
 #ifdef TARGET_WEB

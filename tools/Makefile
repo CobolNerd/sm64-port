@@ -5,7 +5,12 @@ HOST_ENV := $(patsubst MINGW%,MinGW,$(HOST_ENV))
 
 CC           := gcc
 CXX          := g++
-CFLAGS       := -I . -Wall -Wextra -Wno-unused-parameter -pedantic -O2 -s
+ifeq ($(TARGET_N64),1)
+  CFLAGS       := -I . -Wall -Wextra -Wno-unused-parameter -pedantic -O2 -s
+else
+  CFLAGS       := -I . -Wall -Wextra -Wno-unused-parameter -pedantic -std=c99 -O2 -s
+endif
+
 LDFLAGS      := -lm
 ALL_PROGRAMS := armips n64graphics n64graphics_ci mio0 n64cksum textconv patch_libultra_math aifc_decode aiff_extract_codebook vadpcm_enc tabledesign extract_data_for_mio skyconv
 LIBAUDIOFILE := audiofile/libaudiofile.a

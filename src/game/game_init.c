@@ -190,7 +190,7 @@ void clear_viewport(Vp *viewport, s32 color) {
 
 /** Draws the horizontal screen borders */
 void draw_screen_borders(void) {
-    printf("DEBUGRR: draw_screen_borders\n");
+    debug_printf("DEBUGRR: draw_screen_borders\n");
 
     gDPPipeSync(gDisplayListHead++);
 
@@ -251,13 +251,13 @@ void create_task_structure(void) {
 
 /** Starts rendering the scene. */
 void init_render_image(void) {
-    printf("DEBUGRR: init_render_image - START\n"); 
+    debug_printf("DEBUGRR: init_render_image - START\n"); 
     move_segment_table_to_dmem();
     my_rdp_init();
     my_rsp_init();
     clear_z_buffer();
     display_frame_buffer();
-    printf("DEBUGRR: init_render_image - END\n"); 
+    debug_printf("DEBUGRR: init_render_image - END\n"); 
 }
 
 /** Ends the master display list. */
@@ -330,8 +330,8 @@ Gfx **alloc_next_dl(void) {
 #endif
 
 void config_gfx_pool(void) {
-    printf("DEBUGRR: config_gfx_pool - gGlobalTimer: %d\n", gGlobalTimer);
-    printf("DEBUGRR: config_gfx_pool - GFX_NUM_POOLS: %d\n", GFX_NUM_POOLS);
+    debug_printf("DEBUGRR: config_gfx_pool - gGlobalTimer: %d\n", gGlobalTimer);
+    debug_printf("DEBUGRR: config_gfx_pool - GFX_NUM_POOLS: %d\n", GFX_NUM_POOLS);
 
     gGfxPool = &gGfxPools[gGlobalTimer % GFX_NUM_POOLS];
     set_segment_base_addr(1, gGfxPool->buffer);
@@ -641,7 +641,7 @@ void thread5_game_loop(UNUSED void *arg) {
 
     // point levelCommandAddr to the entry point into the level script data.
     levelCommandAddr = segmented_to_virtual(level_script_entry);
-    printf("DEBUGRR: thread5_game_loop - level_script_entry type %d\n", level_script_entry[0]);
+    debug_printf("DEBUGRR: thread5_game_loop - level_script_entry type %d\n", level_script_entry[0]);
 
     play_music(SEQ_PLAYER_SFX, SEQUENCE_ARGS(0, SEQ_SOUND_PLAYER), 0);
     set_sound_mode(save_file_get_sound_mode());
@@ -653,11 +653,11 @@ void thread5_game_loop(UNUSED void *arg) {
 #else
     gGlobalTimer++;    
 
-    printf("DEBUGRR: thread5_game_loop\n");
+    debug_printf("DEBUGRR: thread5_game_loop\n");
 }
 
 void game_loop_one_iteration(void) {
-    printf("DEBUGRR: game_loop_one_iteration - START\n");
+    debug_printf("DEBUGRR: game_loop_one_iteration - START\n");
 
 #endif
         // if the reset timer is active, run the process to reset the game.
@@ -685,7 +685,7 @@ void game_loop_one_iteration(void) {
         read_controller_inputs();
 
         levelCommandAddr = level_script_execute(levelCommandAddr);
-        printf("DEBUGRR: game_loop_one_iteration - level_script_entry type %d\n", level_script_entry[0]);
+        debug_printf("DEBUGRR: game_loop_one_iteration - level_script_entry type %d\n", level_script_entry[0]);
 
         display_and_vsync();
 
@@ -700,5 +700,5 @@ void game_loop_one_iteration(void) {
 #ifdef TARGET_N64
     }
 #endif
-    printf("DEBUGRR: game_loop_one_iteration - END\n");
+    debug_printf("DEBUGRR: game_loop_one_iteration - END\n");
 }
