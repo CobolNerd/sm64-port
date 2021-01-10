@@ -98,7 +98,7 @@ void produce_one_frame(void) {
             audio_cnt = 2;
         }
         u32 num_audio_samples = audio_cnt < 2 ? 528 : 544;*/
-        //create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
+        create_next_audio_buffer(audio_buffer + i * (num_audio_samples * 2), num_audio_samples);
     }
     //printf("Audio samples before submitting: %d\n", audio_api->buffered());
     audio_api->play((u8 *)audio_buffer, 2 * num_audio_samples * 4);
