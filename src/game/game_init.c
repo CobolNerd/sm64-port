@@ -190,7 +190,7 @@ void clear_viewport(Vp *viewport, s32 color) {
 
 /** Draws the horizontal screen borders */
 void draw_screen_borders(void) {
-    debug_printf("DEBUGRR: draw_screen_borders\n");
+    //debug_printf("DEBUGRR: draw_screen_borders\n");
 
     gDPPipeSync(gDisplayListHead++);
 
@@ -251,13 +251,13 @@ void create_task_structure(void) {
 
 /** Starts rendering the scene. */
 void init_render_image(void) {
-    debug_printf("DEBUGRR: init_render_image - START\n"); 
+    //debug_printf("DEBUGRR: init_render_image - START\n"); 
     move_segment_table_to_dmem();
     my_rdp_init();
     my_rsp_init();
     clear_z_buffer();
     display_frame_buffer();
-    debug_printf("DEBUGRR: init_render_image - END\n"); 
+    //debug_printf("DEBUGRR: init_render_image - END\n"); 
 }
 
 /** Ends the master display list. */
@@ -330,8 +330,8 @@ Gfx **alloc_next_dl(void) {
 #endif
 
 void config_gfx_pool(void) {
-    debug_printf("DEBUGRR: config_gfx_pool - gGlobalTimer: %d\n", gGlobalTimer);
-    debug_printf("DEBUGRR: config_gfx_pool - GFX_NUM_POOLS: %d\n", GFX_NUM_POOLS);
+    //debug_printf("DEBUGRR: config_gfx_pool - gGlobalTimer: %d\n", gGlobalTimer);
+    //debug_printf("DEBUGRR: config_gfx_pool - GFX_NUM_POOLS: %d\n", GFX_NUM_POOLS);
 
     gGfxPool = &gGfxPools[gGlobalTimer % GFX_NUM_POOLS];
     set_segment_base_addr(1, gGfxPool->buffer);
@@ -367,9 +367,6 @@ void display_and_vsync(void) {
         frameBufferIndex = 0;
     }
     gGlobalTimer++;
-    
-    //TODO: implement/test
-    gNumVblanks++;
 }
 
 // this function records distinct inputs over a 255-frame interval to RAM locations and was likely
