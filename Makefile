@@ -64,7 +64,7 @@ TARGET := sm64.$(VERSION)
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
   NON_MATCHING := 1
-  GRUCODE := f3d_old
+  GRUCODE := f3d_new
   TARGET_WINDOWS := 0
   ifeq ($(TARGET_WEB),0)
     ifeq ($(OS),Windows_NT)

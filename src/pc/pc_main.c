@@ -44,6 +44,8 @@
 OSMesg D_80339BEC;
 OSMesgQueue gSIEventMesgQueue;
 
+s8 sAudioEnabled = FALSE;
+u32 gNumVblanks = 0;
 s8 gResetTimer;
 s8 D_8032C648;
 s8 gDebugLevelSelect = FALSE;
