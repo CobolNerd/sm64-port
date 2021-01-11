@@ -559,7 +559,7 @@ else # TARGET_N64 == 0
     PLATFORM_LDFLAGS += -lgdi32 -static
   endif
   
-  # GFX_CFLAGS += -DWIDESCREEN
+  GFX_CFLAGS += -DWIDESCREEN
   PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
   
   # Check code syntax with host compiler
