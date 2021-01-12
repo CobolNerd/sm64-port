@@ -67,7 +67,7 @@ void format_integer(s32 n, s32 base, char *dest, s32 *totalLength, u8 width, s8 
         }
 
         // Increments the number of digits until length is long enough.
-        while (1) {
+        while (TRUE) {
             powBase = int_pow(base, numDigits);
 
             if (powBase > (u32) n) {
@@ -407,6 +407,8 @@ void render_textrect(s32 x, s32 y, s32 pos) {
  * a for loop.
  */
 void render_text_labels(void) {
+    //debug_printf("DEBUGRR: render_text_labels - START\n");
+
     s32 i;
     s32 j;
     s8 glyphIndex;
@@ -420,6 +422,8 @@ void render_text_labels(void) {
 
     if (mtx == NULL) {
         sTextLabelsCount = 0;
+        //debug_printf("DEBUGRR: render_text_labels - END - mtx == NULL\n");
+
         return;
     }
 
@@ -428,8 +432,11 @@ void render_text_labels(void) {
     gSPMatrix(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(mtx), G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH);
     gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
 
+    //debug_printf("DEBUGRR: render_text_labels - sTextLabelsCount: %d\n", sTextLabelsCount);
+
     for (i = 0; i < sTextLabelsCount; i++) {
         for (j = 0; j < sTextLabels[i]->length; j++) {
+            //debug_printf("DEBUGRR: render_text_labels - glyphIndex: %c\n", sTextLabels[i]->buffer[j]);
             glyphIndex = char_to_glyph_index(sTextLabels[i]->buffer[j]);
 
             if (glyphIndex != GLYPH_SPACE) {
@@ -459,4 +466,6 @@ void render_text_labels(void) {
     gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
 
     sTextLabelsCount = 0;
+
+    //debug_printf("DEBUGRR: render_text_labels - END\n");
 }

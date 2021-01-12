@@ -8,7 +8,7 @@
 #include "object_list_processor.h"
 #include "sm64.h"
 #include "spawn_sound.h"
-#include "thread6.h"
+#include "rumble_init.h"
 
 /*
  * execute an object's current sound state with a provided array
@@ -93,7 +93,7 @@ void cur_obj_play_sound_2(s32 soundMagic) {
  * Technically, these functions are only educated guesses. Trust these
  * interpretations at your own discretion.
  */
-int calc_dist_to_volume_range_1(f32 distance) // range from 60-124
+s32 calc_dist_to_volume_range_1(f32 distance) // range from 60-124
 {
     s32 volume;
 
@@ -108,7 +108,7 @@ int calc_dist_to_volume_range_1(f32 distance) // range from 60-124
     return volume;
 }
 
-int calc_dist_to_volume_range_2(f32 distance) // range from 79.2-143.2
+s32 calc_dist_to_volume_range_2(f32 distance) // range from 79.2-143.2
 {
     s32 volume;
 

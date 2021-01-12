@@ -9,7 +9,11 @@
 #include "types.h"
 #include "memory.h"
 
+#ifdef USE_SYSTEM_MALLOC
+#define GFX_POOL_SIZE 1
+#else
 #define GFX_POOL_SIZE 6400
+#endif
 
 struct GfxPool {
     Gfx buffer[GFX_POOL_SIZE];
@@ -37,13 +41,19 @@ extern uintptr_t gPhysicalZBuffer;
 extern void *D_80339CF0;
 extern void *D_80339CF4;
 extern struct SPTask *gGfxSPTask;
+#ifdef USE_SYSTEM_MALLOC
+extern struct AllocOnlyPool *gGfxAllocOnlyPool;
+extern Gfx *gDisplayListHeadInChunk;
+extern Gfx *gDisplayListEndInChunk;
+#else
 extern Gfx *gDisplayListHead;
 extern u8 *gGfxPoolEnd;
+#endif
 extern struct GfxPool *gGfxPool;
 extern u8 gControllerBits;
 extern s8 gEepromProbe;
 
-extern void (*D_8032C6A0)(void);
+extern void (*gGoddardVblankCallback)(void);
 extern struct Controller *gPlayer1Controller;
 extern struct Controller *gPlayer2Controller;
 extern struct Controller *gPlayer3Controller;
@@ -72,5 +82,10 @@ void end_master_display_list(void);
 void rendering_init(void);
 void config_gfx_pool(void);
 void display_and_vsync(void);
+
+#ifdef USE_SYSTEM_MALLOC
+Gfx **alloc_next_dl(void);
+#define gDisplayListHead (*(gDisplayListEndInChunk - gDisplayListHeadInChunk >= 2 ? &gDisplayListHeadInChunk : alloc_next_dl()))
+#endif
 
 #endif // GAME_INIT_H

@@ -58,7 +58,6 @@ s16 gCurrLevelNum = LEVEL_MIN;
  * the spawn behavior executed, the index of that behavior is used with sSpawnTypeFromWarpBhv
 */
 
-// D_8032CE9C
 const BehaviorScript *sWarpBhvSpawnTable[] = {
     bhvDoorWarp,                bhvStar,                   bhvExitPodiumWarp,          bhvWarp,
     bhvWarpPipe,                bhvFadingWarp,             bhvInstantActiveWarp,       bhvAirborneWarp,
@@ -67,7 +66,6 @@ const BehaviorScript *sWarpBhvSpawnTable[] = {
     bhvAirborneStarCollectWarp, bhvAirborneDeathWarp,      bhvLaunchStarCollectWarp,   bhvLaunchDeathWarp,
 };
 
-// D_8032CEEC
 u8 sSpawnTypeFromWarpBhv[] = {
     MARIO_SPAWN_DOOR_WARP,             MARIO_SPAWN_UNKNOWN_02,           MARIO_SPAWN_UNKNOWN_03,            MARIO_SPAWN_UNKNOWN_03,
     MARIO_SPAWN_UNKNOWN_03,            MARIO_SPAWN_TELEPORT,             MARIO_SPAWN_INSTANT_ACTIVE,        MARIO_SPAWN_AIRBORNE,
@@ -108,7 +106,7 @@ void set_warp_transition_rgb(u8 red, u8 green, u8 blue) {
 
 void print_intro_text(void) {
 #ifdef VERSION_EU
-    int language = eu_get_language();
+    s32 language = eu_get_language();
 #endif
     if ((gGlobalTimer & 0x1F) < 20) {
         if (gControllerBits == 0) {
@@ -161,6 +159,11 @@ void load_obj_warp_nodes(void) {
     struct ObjectWarpNode *sp24;
     struct Object *sp20 = (struct Object *) gObjParentGraphNode.children;
 
+#ifdef USE_SYSTEM_MALLOC
+    if (sp20 == NULL) {
+        return;
+    }
+#endif
     do {
         struct Object *sp1C = sp20;
 
@@ -253,7 +256,7 @@ void unload_area(void) {
 }
 
 void load_mario_area(void) {
-    func_80320890();
+    stop_sounds_in_continuous_banks();
     load_area(gMarioSpawnInfo->areaIndex);
 
     if (gCurrentArea->index == gMarioSpawnInfo->areaIndex) {
@@ -285,7 +288,7 @@ void change_area(s32 index) {
     }
 
     if (areaFlags & 0x01) {
-        gMarioObject->header.gfx.unk18 = index, gMarioSpawnInfo->areaIndex = index;
+        gMarioObject->header.gfx.areaIndex = index, gMarioSpawnInfo->areaIndex = index;
     }
 }
 
@@ -362,7 +365,16 @@ void play_transition_after_delay(s16 transType, s16 time, u8 red, u8 green, u8 b
 }
 
 void render_game(void) {
+    //debug_printf("DEBUGRR: render_game - START\n");
+    //debug_printf("DEBUGRR: gWarpTransition.pauseRendering: %d\n", gWarpTransition.pauseRendering);
+
+    if (gCurrentArea != NULL) {
+        //debug_printf("DEBUGRR: gCurrentArea->index - %d\n", gCurrentArea->index);
+    }
+    
     if (gCurrentArea != NULL && !gWarpTransition.pauseRendering) {
+        //debug_printf("DEBUGRR: render_game - gCurrentArea != NULL && !gWarpTransition.pauseRendering - START\n");
+
         geo_process_root(gCurrentArea->unk04, D_8032CE74, D_8032CE78, gFBSetColor);
 
         gSPViewport(gDisplayListHead++, VIRTUAL_TO_PHYSICAL(&D_8032CF00));
@@ -392,7 +404,7 @@ void render_game(void) {
         if (gWarpTransition.isActive) {
             if (gWarpTransDelay == 0) {
                 gWarpTransition.isActive = !render_screen_transition(0, gWarpTransition.type, gWarpTransition.time,
-                                                          &gWarpTransition.data);
+                                                                     &gWarpTransition.data);
                 if (!gWarpTransition.isActive) {
                     if (gWarpTransition.type & 1) {
                         gWarpTransition.pauseRendering = TRUE;
@@ -404,9 +416,10 @@ void render_game(void) {
                 gWarpTransDelay--;
             }
         }
+        //debug_printf("DEBUGRR: render_game - gCurrentArea != NULL && !gWarpTransition.pauseRendering - END\n");
     } else {
         render_text_labels();
-        if (D_8032CE78 != 0) {
+        if (D_8032CE78 != NULL) {
             clear_viewport(D_8032CE78, gWarpTransFBSetColor);
         } else {
             clear_frame_buffer(gWarpTransFBSetColor);
@@ -414,5 +427,7 @@ void render_game(void) {
     }
 
     D_8032CE74 = NULL;
-    D_8032CE78 = 0;
+    D_8032CE78 = NULL;
+
+    //debug_printf("DEBUGRR: render_game - END\n");
 }

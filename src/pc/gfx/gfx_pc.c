@@ -159,6 +159,11 @@ static struct RSP {
     } texture_scaling_factor;
     
     struct LoadedVertex loaded_vertices[MAX_VERTICES + 4];
+
+    uint8_t saved_opcode;
+    uint8_t saved_tile;
+    uint16_t saved_uls, saved_ult;
+    int32_t saved_lrx, saved_lry, saved_ulx, saved_uly;
 } rsp;
 
 static struct RDP {
@@ -1729,13 +1734,19 @@ static inline void *seg_addr(uintptr_t w1) {
 #define C1(pos, width) ((cmd->words.w1 >> (pos)) & ((1U << width) - 1))
 
 static void gfx_run_dl(Gfx* cmd) {
+    //debug_printf("DEBUGRR: gfx_run_dl - START\n");
+
     int dummy = 0;
     for (;;) {
         uint32_t opcode = cmd->words.w0 >> 24;
         
+        //debug_printf("DEBUGRR: gfx_run_dl - opcode: %d (%d)\n", opcode, cmd->words.w0);
+
         switch (opcode) {
             // RSP commands:
             case G_MTX:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_MTX\n");
+
 #ifdef F3DEX_GBI_2
                 gfx_sp_matrix(C0(0, 8) ^ G_MTX_PUSH, (const int32_t *) seg_addr(cmd->words.w1));
 #else
@@ -1743,6 +1754,8 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case (uint8_t)G_POPMTX:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_POPMTX\n");
+
 #ifdef F3DEX_GBI_2
                 gfx_sp_pop_matrix(cmd->words.w1 / 64);
 #else
@@ -1750,6 +1763,7 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case G_MOVEMEM:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_MOVEMEM\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_movemem(C0(0, 8), C0(8, 8) * 8, seg_addr(cmd->words.w1));
 #else
@@ -1757,6 +1771,7 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case (uint8_t)G_MOVEWORD:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_MOVEWORD\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_moveword(C0(16, 8), C0(0, 16), cmd->words.w1);
 #else
@@ -1764,6 +1779,7 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case (uint8_t)G_TEXTURE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_TEXTURE\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_texture(C1(16, 16), C1(0, 16), C0(11, 3), C0(8, 3), C0(1, 7));
 #else
@@ -1771,6 +1787,7 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case G_VTX:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_VTX\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_vertex(C0(12, 8), C0(1, 7) - C0(12, 8), seg_addr(cmd->words.w1));
 #elif defined(F3DEX_GBI) || defined(F3DLP_GBI)
@@ -1780,6 +1797,8 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case G_DL:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_DL\n");
+
                 if (C0(16, 1) == 0) {
                     // Push return address
                     gfx_run_dl((Gfx *)seg_addr(cmd->words.w1));
@@ -1789,20 +1808,27 @@ static void gfx_run_dl(Gfx* cmd) {
                 }
                 break;
             case (uint8_t)G_ENDDL:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_ENDDL\n");
                 return;
 #ifdef F3DEX_GBI_2
             case G_GEOMETRYMODE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_GEOMETRYMODE\n");
                 gfx_sp_geometry_mode(~C0(0, 24), cmd->words.w1);
                 break;
 #else
             case (uint8_t)G_SETGEOMETRYMODE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETGEOMETRYMODE\n");
+
                 gfx_sp_geometry_mode(0, cmd->words.w1);
                 break;
             case (uint8_t)G_CLEARGEOMETRYMODE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_CLEARGEOMETRYMODE\n");
+
                 gfx_sp_geometry_mode(cmd->words.w1, 0);
                 break;
 #endif
             case (uint8_t)G_TRI1:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_TRI1\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_tri1(C0(16, 8) / 2, C0(8, 8) / 2, C0(0, 8) / 2);
 #elif defined(F3DEX_GBI) || defined(F3DLP_GBI)
@@ -1813,11 +1839,13 @@ static void gfx_run_dl(Gfx* cmd) {
                 break;
 #if defined(F3DEX_GBI) || defined(F3DLP_GBI)
             case (uint8_t)G_TRI2:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_TRI2\n");
                 gfx_sp_tri1(C0(16, 8) / 2, C0(8, 8) / 2, C0(0, 8) / 2);
                 gfx_sp_tri1(C1(16, 8) / 2, C1(8, 8) / 2, C1(0, 8) / 2);
                 break;
 #endif
             case (uint8_t)G_SETOTHERMODE_L:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETOTHERMODE_L\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_set_other_mode(31 - C0(8, 8) - C0(0, 8), C0(0, 8) + 1, cmd->words.w1);
 #else
@@ -1825,45 +1853,111 @@ static void gfx_run_dl(Gfx* cmd) {
 #endif
                 break;
             case (uint8_t)G_SETOTHERMODE_H:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETOTHERMODE_H\n");
 #ifdef F3DEX_GBI_2
                 gfx_sp_set_other_mode(63 - C0(8, 8) - C0(0, 8), C0(0, 8) + 1, (uint64_t) cmd->words.w1 << 32);
 #else
                 gfx_sp_set_other_mode(C0(8, 8) + 32, C0(0, 8), (uint64_t) cmd->words.w1 << 32);
 #endif
                 break;
+#ifdef F3D_OLD
+            case (uint8_t)G_RDPHALF_2:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_RDPHALF_2\n");
+#else
+            case (uint8_t)G_RDPHALF_1:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_RDPHALF_1\n");
+#endif
+                switch (rsp.saved_opcode) {
+                    case G_TEXRECT:
+                    case G_TEXRECTFLIP:
+#ifdef F3DEX_GBI_2E
+                        rsp.saved_ulx = (int32_t)(C0(0, 24) << 8) >> 8;
+#endif
+                        rsp.saved_uls = (uint16_t)C1(16, 16);
+                        rsp.saved_ult = (uint16_t)C1(0, 16);
+                        break;
+#ifdef F3DEX_GBI_2E
+                    case G_FILLRECT:
+                    {
+                        int32_t ulx = (int32_t)(C0(0, 24) << 8) >> 8;
+                        int32_t uly = (int32_t)(C1(0, 24) << 8) >> 8;
+                        gfx_dp_fill_rectangle(ulx, uly, rsp.saved_lrx, rsp.saved_lry);
+                        rsp.saved_opcode = G_NOOP;
+                        break;
+                    }
+#endif
+                }
+                break;
+#ifdef F3D_OLD
+            case (uint8_t)G_RDPHALF_CONT:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_RDPHALF_CONT\n");
+#else
+            case (uint8_t)G_RDPHALF_2:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_RDPHALF_2\n");
+#endif
+                switch (rsp.saved_opcode) {
+                    case G_TEXRECT:
+                    case G_TEXRECTFLIP:
+                    {
+                        uint8_t tile = rsp.saved_tile;
+                        int32_t ulx = rsp.saved_ulx, lrx = rsp.saved_lrx, lry = rsp.saved_lry;
+                        uint16_t uls = rsp.saved_uls, ult = rsp.saved_ult;
+#ifdef F3DEX_GBI_2E
+                        int32_t uly = (int32_t)(C0(0, 24) << 8) >> 8;
+#else
+                        int32_t uly = rsp.saved_uly;
+#endif
+                        uint16_t dsdx = (uint16_t)C1(16, 16);
+                        uint16_t dtdy = (uint16_t)C1(0, 16);
+                        gfx_dp_texture_rectangle(ulx, uly, lrx, lry, tile, uls, ult, dsdx, dtdy, rsp.saved_opcode == G_TEXRECTFLIP);
+                        rsp.saved_opcode = G_NOOP;
+                        break;
+                    }
+                }
             
             // RDP Commands:
             case G_SETTIMG:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETTIMG\n");
                 gfx_dp_set_texture_image(C0(21, 3), C0(19, 2), C0(0, 10), seg_addr(cmd->words.w1));
                 break;
             case G_LOADBLOCK:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_LOADBLOCK\n");
                 gfx_dp_load_block(C1(24, 3), C0(12, 12), C0(0, 12), C1(12, 12), C1(0, 12));
                 break;
             case G_LOADTILE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_LOADTILE\n");
                 gfx_dp_load_tile(C1(24, 3), C0(12, 12), C0(0, 12), C1(12, 12), C1(0, 12));
                 break;
             case G_SETTILE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETTILE\n");
                 gfx_dp_set_tile(C0(21, 3), C0(19, 2), C0(9, 9), C0(0, 9), C1(24, 3), C1(20, 4), C1(18, 2), C1(14, 4), C1(10, 4), C1(8, 2), C1(4, 4), C1(0, 4));
                 break;
             case G_SETTILESIZE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETTILESIZE\n");
                 gfx_dp_set_tile_size(C1(24, 3), C0(12, 12), C0(0, 12), C1(12, 12), C1(0, 12));
                 break;
             case G_LOADTLUT:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_LOADTLUT\n");
                 gfx_dp_load_tlut(C1(24, 3), C1(14, 10));
                 break;
             case G_SETENVCOLOR:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETENVCOLOR\n");
                 gfx_dp_set_env_color(C1(24, 8), C1(16, 8), C1(8, 8), C1(0, 8));
                 break;
             case G_SETPRIMCOLOR:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETPRIMCOLOR\n");
                 gfx_dp_set_prim_color(C1(24, 8), C1(16, 8), C1(8, 8), C1(0, 8));
                 break;
             case G_SETFOGCOLOR:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETFOGCOLOR\n");
                 gfx_dp_set_fog_color(C1(24, 8), C1(16, 8), C1(8, 8), C1(0, 8));
                 break;
             case G_SETFILLCOLOR:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETFILLCOLOR\n");
                 gfx_dp_set_fill_color(cmd->words.w1);
                 break;
             case G_SETCOMBINE:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETCOMBINE\n");
                 gfx_dp_set_combine_mode(
                     color_comb(C0(20, 4), C1(28, 4), C0(15, 5), C1(15, 3)),
                     color_comb(C0(12, 3), C1(12, 3), C0(9, 3), C1(9, 3)));
@@ -1873,47 +1967,31 @@ static void gfx_run_dl(Gfx* cmd) {
             // G_SETPRIMCOLOR, G_CCMUX_PRIMITIVE, G_ACMUX_PRIMITIVE, is used by Goddard
             // G_CCMUX_TEXEL1, LOD_FRACTION is used in Bowser room 1
             case G_TEXRECT:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_TEXRECT\n");
             case G_TEXRECTFLIP:
             {
-                int32_t lrx, lry, tile, ulx, uly;
-                uint32_t uls, ult, dsdx, dtdy;
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_TEXRECTFLIP\n");
+                rsp.saved_opcode = opcode;
 #ifdef F3DEX_GBI_2E
-                lrx = (int32_t)(C0(0, 24) << 8) >> 8;
-                lry = (int32_t)(C1(0, 24) << 8) >> 8;
-                ++cmd;
-                ulx = (int32_t)(C0(0, 24) << 8) >> 8;
-                uly = (int32_t)(C1(0, 24) << 8) >> 8;
-                ++cmd;
-                uls = C0(16, 16);
-                ult = C0(0, 16);
-                dsdx = C1(16, 16);
-                dtdy = C1(0, 16);
+                rsp.saved_lrx = (int32_t)(C0(0, 24) << 8) >> 8;
+                rsp.saved_lry = (int32_t)(C1(0, 24) << 8) >> 8;
+                rsp.saved_tile = (int32_t)C1(24, 3);
 #else
-                lrx = C0(12, 12);
-                lry = C0(0, 12);
-                tile = C1(24, 3);
-                ulx = C1(12, 12);
-                uly = C1(0, 12);
-                ++cmd;
-                uls = C1(16, 16);
-                ult = C1(0, 16);
-                ++cmd;
-                dsdx = C1(16, 16);
-                dtdy = C1(0, 16);
+                rsp.saved_lrx = C0(12, 12);
+                rsp.saved_lry = C0(0, 12);
+                rsp.saved_tile = C1(24, 3);
+                rsp.saved_ulx = C1(12, 12);
+                rsp.saved_uly = C1(0, 12);
 #endif
-                gfx_dp_texture_rectangle(ulx, uly, lrx, lry, tile, uls, ult, dsdx, dtdy, opcode == G_TEXRECTFLIP);
                 break;
             }
             case G_FILLRECT:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_FILLRECT\n");
 #ifdef F3DEX_GBI_2E
             {
-                int32_t lrx, lry, ulx, uly;
-                lrx = (int32_t)(C0(0, 24) << 8) >> 8;
-                lry = (int32_t)(C1(0, 24) << 8) >> 8;
-                ++cmd;
-                ulx = (int32_t)(C0(0, 24) << 8) >> 8;
-                uly = (int32_t)(C1(0, 24) << 8) >> 8;
-                gfx_dp_fill_rectangle(ulx, uly, lrx, lry);
+                rsp.saved_opcode = G_FILLRECT;
+                rsp.saved_lrx = (int32_t)(C0(0, 24) << 8) >> 8;
+                rsp.saved_lry = (int32_t)(C1(0, 24) << 8) >> 8;
                 break;
             }
 #else
@@ -1921,17 +1999,22 @@ static void gfx_run_dl(Gfx* cmd) {
                 break;
 #endif
             case G_SETSCISSOR:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETSCISSOR\n");
                 gfx_dp_set_scissor(C1(24, 2), C0(12, 12), C0(0, 12), C1(12, 12), C1(0, 12));
                 break;
             case G_SETZIMG:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETZIMG\n");
                 gfx_dp_set_z_image(seg_addr(cmd->words.w1));
                 break;
             case G_SETCIMG:
+                //debug_printf("DEBUGRR: gfx_run_dl - opcode: G_SETCIMG\n");
                 gfx_dp_set_color_image(C0(21, 3), C0(19, 2), C0(0, 11), seg_addr(cmd->words.w1));
                 break;
         }
         ++cmd;
     }
+
+    //debug_printf("DEBUGRR: gfx_run_dl - END\n");
 }
 
 static void gfx_sp_reset() {
@@ -1989,6 +2072,8 @@ struct GfxRenderingAPI *gfx_get_current_rendering_api(void) {
 }
 
 void gfx_start_frame(void) {
+    //debug_printf("DEBUGRR: START gfx_start_frame\n\n");
+
     gfx_wapi->handle_events();
     gfx_wapi->get_dimensions(&gfx_current_dimensions.width, &gfx_current_dimensions.height);
     if (gfx_current_dimensions.height == 0) {
@@ -1996,6 +2081,8 @@ void gfx_start_frame(void) {
         gfx_current_dimensions.height = 1;
     }
     gfx_current_dimensions.aspect_ratio = (float)gfx_current_dimensions.width / (float)gfx_current_dimensions.height;
+
+    //debug_printf("DEBUGRR: END gfx_start_frame\n\n");
 }
 
 void gfx_run(Gfx *commands) {
@@ -2012,6 +2099,7 @@ void gfx_run(Gfx *commands) {
     double t0 = gfx_wapi->get_time();
     gfx_rapi->start_frame();
     gfx_run_dl(commands);
+
     gfx_flush();
     double t1 = gfx_wapi->get_time();
     //printf("Process %f %f\n", t1, t1 - t0);
@@ -2020,8 +2108,14 @@ void gfx_run(Gfx *commands) {
 }
 
 void gfx_end_frame(void) {
+    //debug_printf("DEBUGRR: gfx_end_frame - START\n\n");
+
     if (!dropped_frame) {
+        //debug_printf("DEBUGRR: gfx_end_frame - !dropped_frame\n\n");
+
         gfx_rapi->finish_render();
         gfx_wapi->swap_buffers_end();
     }
+
+    //debug_printf("DEBUGRR: gfx_start_frame - END\n\n");
 }

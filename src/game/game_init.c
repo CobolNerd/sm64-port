@@ -18,15 +18,21 @@
 #include "print.h"
 #include "segment2.h"
 #include "segment_symbols.h"
-#include "thread6.h"
+#include "rumble_init.h"
 #include <prevent_bss_reordering.h>
 
 // FIXME: I'm not sure all of these variables belong in this file, but I don't
 // know of a good way to split them
 struct Controller gControllers[3];
 struct SPTask *gGfxSPTask;
+#ifdef USE_SYSTEM_MALLOC
+struct AllocOnlyPool *gGfxAllocOnlyPool;
+Gfx *gDisplayListHeadInChunk;
+Gfx *gDisplayListEndInChunk;
+#else
 Gfx *gDisplayListHead;
 u8 *gGfxPoolEnd;
+#endif
 struct GfxPool *gGfxPool;
 OSContStatus gControllerStatuses[4];
 OSContPad gControllerPads[4];
@@ -45,12 +51,12 @@ struct MarioAnimation D_80339D10;
 struct MarioAnimation gDemo;
 UNUSED u8 filler80339D30[0x90];
 
-int unused8032C690 = 0;
+s32 unused8032C690 = 0;
 u32 gGlobalTimer = 0;
 
 static u16 sCurrFBNum = 0;
 u16 frameBufferIndex = 0;
-void (*D_8032C6A0)(void) = NULL;
+void (*gGoddardVblankCallback)(void) = NULL;
 struct Controller *gPlayer1Controller = &gControllers[0];
 struct Controller *gPlayer2Controller = &gControllers[1];
 // probably debug only, see note below
@@ -184,6 +190,8 @@ void clear_viewport(Vp *viewport, s32 color) {
 
 /** Draws the horizontal screen borders */
 void draw_screen_borders(void) {
+    //debug_printf("DEBUGRR: draw_screen_borders\n");
+
     gDPPipeSync(gDisplayListHead++);
 
     gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -221,7 +229,7 @@ void create_task_structure(void) {
     gGfxSPTask->msgqueue = &D_80339CB8;
     gGfxSPTask->msg = (OSMesg) 2;
     gGfxSPTask->task.t.type = M_GFXTASK;
-#if TARGET_N64
+#ifdef TARGET_N64
     gGfxSPTask->task.t.ucode_boot = rspF3DBootStart;
     gGfxSPTask->task.t.ucode_boot_size = ((u8 *) rspF3DBootEnd - (u8 *) rspF3DBootStart);
     gGfxSPTask->task.t.flags = 0;
@@ -243,11 +251,13 @@ void create_task_structure(void) {
 
 /** Starts rendering the scene. */
 void init_render_image(void) {
+    //debug_printf("DEBUGRR: init_render_image - START\n"); 
     move_segment_table_to_dmem();
     my_rdp_init();
     my_rsp_init();
     clear_z_buffer();
     display_frame_buffer();
+    //debug_printf("DEBUGRR: init_render_image - END\n"); 
 }
 
 /** Ends the master display list. */
@@ -280,7 +290,7 @@ void draw_reset_bars(void) {
         sp18 += D_8032C648++ * (SCREEN_WIDTH / 4);
 
         for (sp24 = 0; sp24 < ((SCREEN_HEIGHT / 16) + 1); sp24++) {
-            // Must be on one line to match -O2
+            // Loop must be one line to match on -O2
             for (sp20 = 0; sp20 < (SCREEN_WIDTH / 4); sp20++) *sp18++ = 0;
             sp18 += ((SCREEN_WIDTH / 4) * 14);
         }
@@ -291,6 +301,7 @@ void draw_reset_bars(void) {
     osRecvMesg(&gGameVblankQueue, &D_80339BEC, OS_MESG_BLOCK);
 }
 
+#ifdef TARGET_N64
 void rendering_init(void) {
     gGfxPool = &gGfxPools[0];
     set_segment_base_addr(1, gGfxPool->buffer);
@@ -305,22 +316,43 @@ void rendering_init(void) {
     frameBufferIndex++;
     gGlobalTimer++;
 }
+#endif
+
+#ifdef USE_SYSTEM_MALLOC
+Gfx **alloc_next_dl(void) {
+    u32 size = 1000;
+    Gfx *new_chunk = alloc_only_pool_alloc(gGfxAllocOnlyPool, size * sizeof(Gfx));
+    gSPBranchList(gDisplayListHeadInChunk++, new_chunk);
+    gDisplayListHeadInChunk = new_chunk;
+    gDisplayListEndInChunk = new_chunk + size;
+    return &gDisplayListHeadInChunk;
+}
+#endif
 
 void config_gfx_pool(void) {
+    //debug_printf("DEBUGRR: config_gfx_pool - gGlobalTimer: %d\n", gGlobalTimer);
+    //debug_printf("DEBUGRR: config_gfx_pool - GFX_NUM_POOLS: %d\n", GFX_NUM_POOLS);
+
     gGfxPool = &gGfxPools[gGlobalTimer % GFX_NUM_POOLS];
     set_segment_base_addr(1, gGfxPool->buffer);
     gGfxSPTask = &gGfxPool->spTask;
+#ifdef USE_SYSTEM_MALLOC
+    gDisplayListHeadInChunk = gGfxPool->buffer;
+    gDisplayListEndInChunk = gDisplayListHeadInChunk + 1;
+    alloc_only_pool_clear(gGfxAllocOnlyPool);
+#else
     gDisplayListHead = gGfxPool->buffer;
     gGfxPoolEnd = (u8 *) (gGfxPool->buffer + GFX_POOL_SIZE);
+#endif
 }
 
 /** Handles vsync. */
 void display_and_vsync(void) {
     profiler_log_thread5_time(BEFORE_DISPLAY_LISTS);
     osRecvMesg(&D_80339CB8, &D_80339BEC, OS_MESG_BLOCK);
-    if (D_8032C6A0 != NULL) {
-        D_8032C6A0();
-        D_8032C6A0 = NULL;
+    if (gGoddardVblankCallback != NULL) {
+        gGoddardVblankCallback();
+        gGoddardVblankCallback = NULL;
     }
     send_display_list(&gGfxPool->spTask);
     profiler_log_thread5_time(AFTER_DISPLAY_LISTS);
@@ -606,6 +638,7 @@ void thread5_game_loop(UNUSED void *arg) {
 
     // point levelCommandAddr to the entry point into the level script data.
     levelCommandAddr = segmented_to_virtual(level_script_entry);
+    //debug_printf("DEBUGRR: thread5_game_loop - level_script_entry type %d\n", level_script_entry[0]);
 
     play_music(SEQ_PLAYER_SFX, SEQUENCE_ARGS(0, SEQ_SOUND_PLAYER), 0);
     set_sound_mode(save_file_get_sound_mode());
@@ -613,12 +646,16 @@ void thread5_game_loop(UNUSED void *arg) {
 #ifdef TARGET_N64
     rendering_init();
 
-    while (1) {
+    while (TRUE) {
 #else
-    gGlobalTimer++;
+    gGlobalTimer++;    
+
+    //debug_printf("DEBUGRR: thread5_game_loop\n");
 }
 
 void game_loop_one_iteration(void) {
+    //debug_printf("DEBUGRR: game_loop_one_iteration - START\n");
+
 #endif
         // if the reset timer is active, run the process to reset the game.
         if (gResetTimer) {
@@ -643,16 +680,22 @@ void game_loop_one_iteration(void) {
         audio_game_loop_tick();
         config_gfx_pool();
         read_controller_inputs();
+
         levelCommandAddr = level_script_execute(levelCommandAddr);
+        //debug_printf("DEBUGRR: game_loop_one_iteration - level_script_entry type %d\n", level_script_entry[0]);
+
         display_and_vsync();
 
         // when debug info is enabled, print the "BUF %d" information.
         if (gShowDebugText) {
+#ifndef USE_SYSTEM_MALLOC
             // subtract the end of the gfx pool with the display list to obtain the
             // amount of free space remaining.
             print_text_fmt_int(180, 20, "BUF %d", gGfxPoolEnd - (u8 *) gDisplayListHead);
+#endif
         }
 #ifdef TARGET_N64
     }
 #endif
+    //debug_printf("DEBUGRR: game_loop_one_iteration - END\n");
 }

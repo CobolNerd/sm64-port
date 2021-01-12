@@ -19,7 +19,7 @@ static void xinput_read(OSContPad *pad) {
         if (XInputGetState(i, &state) == ERROR_SUCCESS) {
             XINPUT_GAMEPAD *gp = &state.Gamepad;
             if (gp->wButtons & XINPUT_GAMEPAD_START) pad->button |= START_BUTTON;
-            if (gp->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) pad->button |= Z_TRIG;
+            if (gp->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) pad->button |= L_TRIG;
             if (gp->bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) pad->button |= Z_TRIG;
             if (gp->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) pad->button |= R_TRIG;
             if (gp->bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD) pad->button |= R_TRIG;
@@ -45,5 +45,16 @@ struct ControllerAPI controller_xinput = {
     xinput_init,
     xinput_read
 };
+
+void testVibrationOn() {
+    XINPUT_STATE state;
+    XINPUT_VIBRATION vb;;
+
+    if (XInputGetState(0, &state) == ERROR_SUCCESS) {
+        XINPUT_GAMEPAD *gp = &state.Gamepad;
+        vb.wRightMotorSpeed = 20000;
+        vb.wLeftMotorSpeed = 20000;
+    }
+}
 
 #endif

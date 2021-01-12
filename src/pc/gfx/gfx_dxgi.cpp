@@ -25,6 +25,7 @@
 #include "gfx_direct3d_common.h"
 #include "gfx_screen_config.h"
 #include "gfx_pc.h"
+#include "pc/util.h"
 
 #define DECLARE_GFX_DXGI_FUNCTIONS
 #include "gfx_dxgi.h"
@@ -481,6 +482,7 @@ static void gfx_dxgi_swap_buffers_begin(void) {
 }
 
 static void gfx_dxgi_swap_buffers_end(void) {
+    //debug_printf("DEBUGRR: gfx_dxgi_swap_buffers_end - START\n ");        
     LARGE_INTEGER t0, t1, t2;
     QueryPerformanceCounter(&t0);
     QueryPerformanceCounter(&t1);
@@ -500,6 +502,7 @@ static void gfx_dxgi_swap_buffers_end(void) {
     dxgi.sync_interval_means_frames_to_wait = dxgi.pending_frame_stats.rbegin()->first == stats.PresentCount;
 
     //printf("done %llu gpu:%d wait:%d freed:%llu frame:%u %u monitor:%u t:%llu\n", (unsigned long long)(t0.QuadPart - dxgi.qpc_init), (int)(t1.QuadPart - t0.QuadPart), (int)(t2.QuadPart - t0.QuadPart), (unsigned long long)(t2.QuadPart - dxgi.qpc_init), dxgi.pending_frame_stats.rbegin()->first, stats.PresentCount, stats.SyncRefreshCount, (unsigned long long)(stats.SyncQPCTime.QuadPart - dxgi.qpc_init));
+    //debug_printf("DEBUGRR: gfx_dxgi_swap_buffers_end - END\n");        
 }
 
 static double gfx_dxgi_get_time(void) {

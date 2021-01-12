@@ -27,22 +27,8 @@ typedef signed short int       s16;
 typedef unsigned short int     u16;
 typedef signed int             s32;
 typedef unsigned int           u32;
-
-#ifdef TARGET_N64
 typedef signed long long int   s64;
 typedef unsigned long long int u64;
-typedef u32 size_t;
-typedef s32 ssize_t;
-typedef u32 uintptr_t;
-typedef s32 intptr_t;
-typedef s32 ptrdiff_t;
-#else
-#include <stddef.h>
-#include <stdint.h>
-typedef ptrdiff_t ssize_t;
-typedef int64_t s64;
-typedef uint64_t u64;
-#endif
 
 typedef volatile u8   vu8;
 typedef volatile u16 vu16;
@@ -52,6 +38,21 @@ typedef volatile s8   vs8;
 typedef volatile s16 vs16;
 typedef volatile s32 vs32;
 typedef volatile s64 vs64;
+
+typedef float  f32;
+typedef double f64;
+
+#ifdef TARGET_N64
+typedef u32 size_t;
+typedef s32 ssize_t;
+typedef u32 uintptr_t;
+typedef s32 intptr_t;
+typedef s32 ptrdiff_t;
+#else
+#include <stddef.h>
+#include <stdint.h>
+typedef ptrdiff_t ssize_t;
+#endif
 
 #endif // TARGET_PS2
 

@@ -1,23 +1,39 @@
-#include <ultra64.h>
-#include "macros.h"
-
-#include "buffers/buffers.h"
-#include "main.h"
-#include "thread6.h"
-
+#define VERSION_SH
 #ifdef VERSION_SH
 
-static s8 D_SH_8030CCB4;
-static s32 sUnusedDisableRumble;
-static s32 sRumblePakThreadActive;
-static s32 sRumblePakActive;
-static s32 sRumblePakErrorCount;
-s32 gRumblePakTimer;
+#include <PR/ultratypes.h>
+#include "types.h"
+#include "pc_main.h"
+#include "game_init.h"
 
+#ifdef TARGET_N64
+OSThread gRumblePakThread;
+#endif
+
+s32 gRumblePakPfs; // Actually an OSPfs but we don't have that header yet
+
+s8 D_SH_8031D8F8[0x60];
+
+OSMesg gRumblePakSchedulerMesgBuf[1];
+OSMesgQueue gRumblePakSchedulerMesgQueue;
+OSMesg gRumbleThreadVIMesgBuf[1];
+OSMesgQueue gRumbleThreadVIMesgQueue;
+
+struct RumbleData gRumbleDataQueue[3];
+
+struct StructSH8031D9B0 gCurrRumbleSettings;
+
+s32 sRumblePakThreadActive = 0;
+s32 sRumblePakActive = 0;
+s32 sRumblePakErrorCount = 0;
+s32 gRumblePakTimer = 0;
+
+#ifdef TARGET_N64
 // These void* are OSPfs* but we don't have that header
 extern s32 osMotorStop(void *);
 extern s32 osMotorStart(void *);
 extern u32 osMotorInit(OSMesgQueue *, void *, s32);
+#endif
 
 void init_rumble_pak_scheduler_queue(void) {
     osCreateMesgQueue(&gRumblePakSchedulerMesgQueue, gRumblePakSchedulerMesgBuf, 1);
@@ -40,11 +56,13 @@ static void start_rumble(void) {
 
     block_until_rumble_pak_free();
 
+#ifdef TARGET_N64
     if (!osMotorStart(&gRumblePakPfs)) {
         sRumblePakErrorCount = 0;
     } else {
         sRumblePakErrorCount++;
     }
+#endif
 
     release_rumble_pak_control();
 }
@@ -56,17 +74,19 @@ static void stop_rumble(void) {
 
     block_until_rumble_pak_free();
 
+#ifdef TARGET_N64
     if (!osMotorStop(&gRumblePakPfs)) {
         sRumblePakErrorCount = 0;
     } else {
         sRumblePakErrorCount++;
     }
+#endif
 
     release_rumble_pak_control();
 }
 
 static void update_rumble_pak(void) {
-    if (D_SH_8030CCB4 > 0) {
+    if (gResetTimer > 0) {
         stop_rumble();
         return;
     }
@@ -98,7 +118,7 @@ static void update_rumble_pak(void) {
 
         if (gCurrRumbleSettings.unk0A >= 5) {
             start_rumble();
-        } else if ((gCurrRumbleSettings.unk0A >= 2) && (gGlobalTimer % gCurrRumbleSettings.unk0C == 0)) {
+        } else if ((gCurrRumbleSettings.unk0A >= 2) && (gNumVblanks % gCurrRumbleSettings.unk0C == 0)) {
             start_rumble();
         } else {
             stop_rumble();
@@ -127,7 +147,7 @@ static void update_rumble_data_queue(void) {
 }
 
 void queue_rumble_data(s16 a0, s16 a1) {
-    if (sUnusedDisableRumble) {
+    if (gCurrDemoInput != NULL) {
         return;
     }
 
@@ -167,7 +187,7 @@ u8 is_rumble_finished_and_queue_empty(void) {
 }
 
 void reset_rumble_timers(void) {
-    if (sUnusedDisableRumble) {
+    if (gCurrDemoInput != NULL) {
         return;
     }
 
@@ -183,7 +203,7 @@ void reset_rumble_timers(void) {
 }
 
 void reset_rumble_timers_2(s32 a0) {
-    if (sUnusedDisableRumble) {
+    if (gCurrDemoInput != NULL) {
         return;
     }
 
@@ -217,7 +237,7 @@ void reset_rumble_timers_2(s32 a0) {
 }
 
 void func_sh_8024CA04(void) {
-    if (sUnusedDisableRumble) {
+    if (gCurrDemoInput != NULL) {
         return;
     }
 
@@ -225,6 +245,7 @@ void func_sh_8024CA04(void) {
     gCurrRumbleSettings.unk0C = 4;
 }
 
+#ifdef TARGET_N64
 static void thread6_rumble_loop(UNUSED void *a0) {
     OSMesg msg;
 
@@ -243,7 +264,7 @@ static void thread6_rumble_loop(UNUSED void *a0) {
             if (sRumblePakErrorCount >= 30) {
                 sRumblePakActive = FALSE;
             }
-        } else if (gGlobalTimer % 60 == 0) {
+        } else if (gNumVblanks % 60 == 0) {
             sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
             sRumblePakErrorCount = 0;
         }
@@ -253,13 +274,16 @@ static void thread6_rumble_loop(UNUSED void *a0) {
         }
     }
 }
+#endif
 
 void cancel_rumble(void) {
+#ifdef TARGET_N64
     sRumblePakActive = osMotorInit(&gSIEventMesgQueue, &gRumblePakPfs, gPlayer1Controller->port) < 1;
 
     if (sRumblePakActive) {
         osMotorStop(&gRumblePakPfs);
     }
+#endif
 
     gRumbleDataQueue[0].unk00 = 0;
     gRumbleDataQueue[1].unk00 = 0;
@@ -273,8 +297,10 @@ void cancel_rumble(void) {
 
 void create_thread_6(void) {
     osCreateMesgQueue(&gRumbleThreadVIMesgQueue, gRumbleThreadVIMesgBuf, 1);
+#ifdef TARGET_N64
     osCreateThread(&gRumblePakThread, 6, thread6_rumble_loop, NULL, gThread6Stack + 0x2000, 30);
     osStartThread(&gRumblePakThread);
+#endif
 }
 
 void rumble_thread_update_vi(void) {

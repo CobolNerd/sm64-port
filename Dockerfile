@@ -5,9 +5,9 @@ RUN apt-get update && \
         binutils-mips-linux-gnu \
         bsdmainutils \
         build-essential \
-        libaudiofile-dev \
-        python3 \
-        wget
+        libcapstone-dev \
+        pkgconf \
+        python3
 
 RUN wget https://github.com/ps2dev/ps2dev/releases/download/v1.1/ps2dev-ubuntu-latest.tar.gz && \
     echo 6bd7352ff526239e928f5200b43afa96bdef04ecf48d15386bac954938b514a1 ps2dev-ubuntu-latest.tar.gz | sha256sum --check && \
@@ -20,5 +20,5 @@ ENV PATH="/ps2dev/ee/bin:/ps2dev/iop/bin:/sm64/tools:${PATH}"
 ENV PS2SDK=/ps2dev/ps2sdk
 ENV GSKIT=/ps2dev/gsKit
 
-CMD echo 'usage: docker run --rm --mount type=bind,source="$(pwd)",destination=/sm64 sm64 make VERSION=${VERSION:-us} -j4'
-
+CMD echo 'usage: docker run --rm --mount type=bind,source="$(pwd)",destination=/sm64 sm64 make VERSION=us -j4\n' \
+         'see https://github.com/n64decomp/sm64/blob/master/README.md for advanced usage'

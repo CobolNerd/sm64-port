@@ -3,8 +3,10 @@
 #include "buffers.h"
 
 ALIGNED8 u8 gDecompressionHeap[0xD000];
-#if defined(VERSION_EU) || defined(VERSION_SH)
+#if defined(VERSION_EU)
 ALIGNED16 u8 gAudioHeap[DOUBLE_SIZE_ON_64_BIT(0x31200) - 0x3800];
+#elif defined(VERSION_SH)
+ALIGNED16 u8 gAudioHeap[DOUBLE_SIZE_ON_64_BIT(0x31200) - 0x4800];
 #else
 ALIGNED16 u8 gAudioHeap[DOUBLE_SIZE_ON_64_BIT(0x31200)];
 #endif
@@ -37,3 +39,8 @@ ALIGNED8 u8 gAudioSPTaskYieldBuffer[OS_YIELD_AUDIO_SIZE];
 #if !defined(F3DEX_GBI_SHARED) && !defined(VERSION_EU)
 ALIGNED8 u8 gUnusedThread2Stack[0x1400];
 #endif
+
+
+
+
+
