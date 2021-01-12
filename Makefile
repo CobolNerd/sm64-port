@@ -38,7 +38,7 @@ $(eval $(call validate-option,COMPILER,ido gcc))
 #   us - builds the 1996 North American version
 #   eu - builds the 1997 PAL version
 #   sh - builds the 1997 Japanese Shindou version, with rumble pak support
-VERSION ?= sh
+VERSION ?= us
 $(eval $(call validate-option,VERSION,jp us eu sh))
 
 ifeq      ($(VERSION),jp)
@@ -488,19 +488,7 @@ ifeq ($(TARGET_N64),1)
   OBJCOPY   := $(CROSS)objcopy
   
   C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
-  DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
-
-  # Check code syntax with host compiler
-  CC_CHECK := gcc
-  CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
-
-  # C compiler options
-  CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
-  ifeq ($(COMPILER),gcc)
-    CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
-  else
-    CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
-  endif
+  DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)  
 
   ASFLAGS     := -march=vr4300 -mabi=32 $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
   RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
@@ -520,6 +508,13 @@ ifeq ($(TARGET_N64),1)
   export LANG := C
 
 else # TARGET_N64 == 0
+
+  AS := as
+  CC := gcc
+  CXX := g++
+  CPP := cpp -P
+  OBJDUMP := objdump
+  OBJCOPY := objcopy
 
   ifeq ($(TARGET_PS2),1)
     ifeq ($(PS2SDK),)
@@ -541,115 +536,104 @@ else # TARGET_N64 == 0
     OBJCOPY = $(EE_PREFIX)objcopy
     OBJDUMP = $(EE_PREFIX)objdump
     STRIP = $(EE_PREFIX)strip
+  else ifeq ($(TARGET_WEB),1)
+    CC := emcc
+  else ifeq ($(TARGET_WINDOWS),1)
+    LD := $(CXX)
   else
+    LD := $(CC)
+  endif
 
-    AS := as
-    
-    ifneq ($(TARGET_WEB),1)
-      CC := gcc
-      CXX := g++
+  C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
+  DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
+
+  # C compiler options
+  ifeq ($(TARGET_N64),1)
+    CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
+    ifeq ($(COMPILER),gcc)
+      CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
     else
-      CC := emcc
+      CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
     endif
+  else ifneq ($(TARGET_PS2),1)
+    CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -frapv -march=native
+  endif
+
+  ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
+  RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
+
+  # C preprocessor flags
+  CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
+
+  # Platform-specific compiler and linker flags
+  ifeq ($(TARGET_WINDOWS),1)
+    PLATFORM_CFLAGS  := -DTARGET_WINDOWS
+    PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
+  endif
+  ifeq ($(TARGET_LINUX),1)
+    PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
+    PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
+  endif
+  ifeq ($(TARGET_WEB),1)
+    PLATFORM_CFLAGS  := -DTARGET_WEB
+    PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+  endif
+  ifeq ($(TARGET_PS2),1)
+    AUDSRV     := ps2/ps2-audsrv
+    AUDSRV_IRX := $(BUILD_DIR)/audsrv_irx
+    AUDSRV_LIB := $(BUILD_DIR)/libaudsrv.a
+    FREESD_IRX := $(BUILD_DIR)/freesd_irx
+    PS2_ICON   := ps2/sm64.icn
+    C_FILES += $(AUDSRV_IRX).c $(FREESD_IRX).c $(BUILD_DIR)/ps2_icon.c
+    O_FILES += $(AUDSRV_IRX).o $(FREESD_IRX).o $(BUILD_DIR)/ps2_icon.o
+    PLATFORM_CFLAGS  := -DTARGET_PS2 -D_EE -G0 -I$(AUDSRV)/ee/rpc/audsrv/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -I$(GSKIT)/include
+    PLATFORM_LDFLAGS := -L$(GSKIT)/lib -lgskit -ldmakit $(AUDSRV_LIB) -L$(PS2SDK)/ee/lib -lpad -lmc -ldma -lcdvd -lpatches -lm -lc -lkernel
+    ifneq ($(USE_NEW_PS2SDK),1)
+      PLATFORM_ASFLAGS := --32 -march=generic32
+    endif
+  endif
+
+  # Compiler and linker flags for graphics backend
+  ifeq ($(ENABLE_OPENGL),1)
+    GFX_CFLAGS  := -DENABLE_OPENGL
+    GFX_LDFLAGS :=
     ifeq ($(TARGET_WINDOWS),1)
-      LD := $(CXX)
-    else
-      LD := $(CC)
-    endif
-    CPP := cpp -P
-    OBJDUMP := objdump
-    OBJCOPY := objcopy
-
-    C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
-    DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
-
-
-    # C compiler options
-    ifeq ($(TARGET_N64),1)
-      CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
-      ifeq ($(COMPILER),gcc)
-        CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
-      else
-        CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
-      endif
-    else
-      CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
-    endif
-
-    ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
-    RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
-
-    # C preprocessor flags
-    CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
-
-    # Platform-specific compiler and linker flags
-    ifeq ($(TARGET_WINDOWS),1)
-      PLATFORM_CFLAGS  := -DTARGET_WINDOWS
-      PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
+      GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
+      GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
     endif
     ifeq ($(TARGET_LINUX),1)
-      PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
-      PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
+      GFX_CFLAGS  += $(shell sdl2-config --cflags)
+      GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
     endif
     ifeq ($(TARGET_WEB),1)
-      PLATFORM_CFLAGS  := -DTARGET_WEB
-      PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+      GFX_CFLAGS  += -s USE_SDL=2
+      GFX_LDFLAGS += -lGL -lSDL2
     endif
-    ifeq ($(TARGET_PS2),1)
-      AUDSRV     := ps2/ps2-audsrv
-      AUDSRV_IRX := $(BUILD_DIR)/audsrv_irx
-      AUDSRV_LIB := $(BUILD_DIR)/libaudsrv.a
-      FREESD_IRX := $(BUILD_DIR)/freesd_irx
-      PS2_ICON   := ps2/sm64.icn
-      C_FILES += $(AUDSRV_IRX).c $(FREESD_IRX).c $(BUILD_DIR)/ps2_icon.c
-      O_FILES += $(AUDSRV_IRX).o $(FREESD_IRX).o $(BUILD_DIR)/ps2_icon.o
-      PLATFORM_CFLAGS  := -DTARGET_PS2 -D_EE -G0 -I$(AUDSRV)/ee/rpc/audsrv/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -I$(GSKIT)/include
-      PLATFORM_LDFLAGS := -L$(GSKIT)/lib -lgskit -ldmakit $(AUDSRV_LIB) -L$(PS2SDK)/ee/lib -lpad -lmc -ldma -lcdvd -lpatches -lm -lc -lkernel
-      ifneq ($(USE_NEW_PS2SDK),1)
-        PLATFORM_ASFLAGS := --32 -march=generic32
-      endif
-    endif
-
-    # Compiler and linker flags for graphics backend
-    ifeq ($(ENABLE_OPENGL),1)
-      GFX_CFLAGS  := -DENABLE_OPENGL
-      GFX_LDFLAGS :=
-      ifeq ($(TARGET_WINDOWS),1)
-        GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
-        GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
-      endif
-      ifeq ($(TARGET_LINUX),1)
-        GFX_CFLAGS  += $(shell sdl2-config --cflags)
-        GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
-      endif
-      ifeq ($(TARGET_WEB),1)
-        GFX_CFLAGS  += -s USE_SDL=2
-        GFX_LDFLAGS += -lGL -lSDL2
-      endif
-    endif
-    ifeq ($(ENABLE_DX11),1)
-      GFX_CFLAGS := -DENABLE_DX11
-      PLATFORM_LDFLAGS += -lgdi32 -static
-    endif
-    ifeq ($(ENABLE_DX12),1)
-      GFX_CFLAGS := -DENABLE_DX12
-      PLATFORM_LDFLAGS += -lgdi32 -static
-    endif
-    
-    GFX_CFLAGS += -DWIDESCREEN
-    PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
-    
-    # Check code syntax with host compiler
-    CC_CHECK := gcc
-    ifeq ($(TARGET_N64),1)
-      CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
-    else
-      CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
-    endif
-
-    ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
-    LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
   endif
+  ifeq ($(ENABLE_DX11),1)
+    GFX_CFLAGS := -DENABLE_DX11
+    PLATFORM_LDFLAGS += -lgdi32 -static
+  endif
+  ifeq ($(ENABLE_DX12),1)
+    GFX_CFLAGS := -DENABLE_DX12
+    PLATFORM_LDFLAGS += -lgdi32 -static
+  endif
+  
+  GFX_CFLAGS += -DWIDESCREEN
+  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+  
+  # Check code syntax with host compiler
+  CC_CHECK := $(CC)
+  ifeq ($(TARGET_N64),1)
+    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
+  else ifeq ($(TARGET_PS2),1)
+    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+  else
+    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+  endif
+
+  ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
+  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
 endif
 
 #==============================================================================#
