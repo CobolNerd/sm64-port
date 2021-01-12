@@ -329,7 +329,8 @@ ifeq ($(TARGET_PS2),1)
       endif
     endif
   endif
-else ifeq ($(TARGET_PS2),1)
+endif
+ifeq ($(TARGET_PS2),1)
   ifeq ($(USE_NEW_PS2SDK),1)
     OPT_FLAGS := -O3 -fno-tree-builtin-call-dce -fno-strict-aliasing
   else
