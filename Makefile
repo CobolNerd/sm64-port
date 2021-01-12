@@ -24,8 +24,6 @@ TARGET_PS2 ?= 1
 # Use the WIP GCC9+ toolchain
 USE_NEW_PS2SDK ?= 0
 
-# Compiler to use (ido or gcc)
-
 
 # COMPILER - selects the C compiler to use
 #   ido - uses the SGI IRIS Development Option compiler, which is used to build
@@ -158,7 +156,7 @@ ifeq ($(TARGET_N64),1)
 
     MIPSISET := -mips2
   else ifeq ($(COMPILER),gcc)
-  NON_MATCHING := 1
+    NON_MATCHING := 1
     MIPSISET     := -mips3
     OPT_FLAGS    := -O2
   endif
@@ -241,7 +239,7 @@ ifeq ($(filter clean distclean print-%,$(MAKECMDGOALS)),)
   ifeq ($(NOEXTRACT),0)
     DUMMY != $(PYTHON) extract_assets.py $(VERSION) >&2 || echo FAIL
     ifeq ($(DUMMY),FAIL)
-  $(error Failed to extract assets)
+      $(error Failed to extract assets)
     endif
   endif
 
@@ -249,7 +247,7 @@ ifeq ($(filter clean distclean print-%,$(MAKECMDGOALS)),)
   $(info Building tools...)
   DUMMY != $(MAKE) -s -C $(TOOLS_DIR) $(if $(filter-out ido0,$(COMPILER)$(USE_QEMU_IRIX)),all-except-recomp,) >&2 || echo FAIL
     ifeq ($(DUMMY),FAIL)
-  $(error Failed to build tools)
+      $(error Failed to build tools)
     endif
   $(info Building ROM...)
 
@@ -264,13 +262,13 @@ endif
 # BUILD_DIR is location where all build artifacts are placed
 BUILD_DIR_BASE := build
 ifeq ($(TARGET_N64),1)
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)
 else ifeq ($(TARGET_WEB),1)
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_web
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)_web
 else ifeq ($(TARGET_PS2),1)
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_ps2
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)_ps2
 else
-  BUILD_DIR := $(BUILD_DIR_BASE)/$(VERSION)_pc
+  BUILD_DIR      := $(BUILD_DIR_BASE)/$(VERSION)_pc
 endif
 
 ifeq ($(TARGET_WEB),1)
@@ -282,15 +280,17 @@ EXE := $(BUILD_DIR)/$(TARGET).elf
 else
 EXE := $(BUILD_DIR)/$(TARGET)
 endif
-ROM := $(BUILD_DIR)/$(TARGET).z64
-ELF := $(BUILD_DIR)/$(TARGET).elf
+
+ROM            := $(BUILD_DIR)/$(TARGET).z64
+ELF            := $(BUILD_DIR)/$(TARGET).elf
+
 LIBULTRA       := $(BUILD_DIR)/libultra.a
-LD_SCRIPT := sm64.ld
-MIO0_DIR := $(BUILD_DIR)/bin
-SOUND_BIN_DIR := $(BUILD_DIR)/sound
-TEXTURE_DIR := textures
-ACTOR_DIR := actors
-LEVEL_DIRS := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
+LD_SCRIPT      := sm64.ld
+MIO0_DIR       := $(BUILD_DIR)/bin
+SOUND_BIN_DIR  := $(BUILD_DIR)/sound
+TEXTURE_DIR    := textures
+ACTOR_DIR      := actors
+LEVEL_DIRS     := $(patsubst levels/%,%,$(dir $(wildcard levels/*/header.h)))
 
 ASM_DIRS := lib
 ifeq ($(TARGET_N64),1)
@@ -308,7 +308,7 @@ ULTRA_BIN_DIRS := lib/bin
 
 GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
 
-elseMIPSISET := -mips2
+MIPSISET := -mips2
 MIPSBIT := -32
 
 ifeq ($(COMPILER),gcc)
@@ -319,17 +319,16 @@ ifeq ($(TARGET_PS2),1)
   # try to detect GCC version
   EE_CC_VERSION := $(shell ee-gcc -dumpversion 2> /dev/null)
   ifneq ($(EE_CC_VERSION),3.2.2)
-  ifneq ($(EE_CC_VERSION),3.2.3)
-    # maybe new SDK?
-    EE_CC_VERSION := $(shell mips64r5900el-ps2-elf-gcc -dumpversion 2> /dev/null)
-    ifeq ($(EE_CC_VERSION),)
-      $(error No valid GCC found in PATH)
-    else
-      USE_NEW_PS2SDK := 1
+    ifneq ($(EE_CC_VERSION),3.2.3)
+      # maybe new SDK?
+      EE_CC_VERSION := $(shell mips64r5900el-ps2-elf-gcc -dumpversion 2> /dev/null)
+      ifeq ($(EE_CC_VERSION),)
+        $(error No valid GCC found in PATH)
+      else
+        USE_NEW_PS2SDK := 1
+      endif
     endif
   endif
-  endif
-endififeq ($(TARGET_WEB),1)
 else ifeq ($(TARGET_PS2),1)
   ifeq ($(USE_NEW_PS2SDK),1)
     OPT_FLAGS := -O3 -fno-tree-builtin-call-dce -fno-strict-aliasing
@@ -342,12 +341,16 @@ ifeq ($(DEBUG),1)
   OPT_FLAGS += -g
 endif
 
+ifeq ($(TARGET_WEB),1)
+  OPT_FLAGS := -g -g4 --source-map-base http://localhost:8080/
+endif
+
 # File dependencies and variables for specific files
 include Makefile.split
 
 # Source code files
-LEVEL_C_FILES := $(wildcard levels/*/leveldata.c) $(wildcard levels/*/script.c) $(wildcard levels/*/geo.c)
-C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C_FILES)
+LEVEL_C_FILES     := $(wildcard levels/*/leveldata.c) $(wildcard levels/*/script.c) $(wildcard levels/*/geo.c)
+C_FILES           := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c)) $(LEVEL_C_FILES)
 ifeq ($(TARGET_N64),0)
   C_FILES           := $(filter-out src/game/main.c,$(C_FILES))
 endif
@@ -387,11 +390,11 @@ $(info GENERATED_C_FILES:        $(GENERATED_C_FILES))
 ULTRA_S_FILES     := $(foreach dir,$(ULTRA_SRC_DIRS),$(wildcard $(dir)/*.s))
 
 # Sound files
-SOUND_BANK_FILES := $(wildcard sound/sound_banks/*.json)
-SOUND_SAMPLE_DIRS := $(wildcard sound/samples/*)
-SOUND_SAMPLE_AIFFS := $(foreach dir,$(SOUND_SAMPLE_DIRS),$(wildcard $(dir)/*.aiff))
+SOUND_BANK_FILES    := $(wildcard sound/sound_banks/*.json)
+SOUND_SAMPLE_DIRS   := $(wildcard sound/samples/*)
+SOUND_SAMPLE_AIFFS  := $(foreach dir,$(SOUND_SAMPLE_DIRS),$(wildcard $(dir)/*.aiff))
 SOUND_SAMPLE_TABLES := $(foreach file,$(SOUND_SAMPLE_AIFFS),$(BUILD_DIR)/$(file:.aiff=.table))
-SOUND_SAMPLE_AIFCS := $(foreach file,$(SOUND_SAMPLE_AIFFS),$(BUILD_DIR)/$(file:.aiff=.aifc))
+SOUND_SAMPLE_AIFCS  := $(foreach file,$(SOUND_SAMPLE_AIFFS),$(BUILD_DIR)/$(file:.aiff=.aifc))
 SOUND_SEQUENCE_DIRS := sound/sequences sound/sequences/$(VERSION)
 # all .m64 files in SOUND_SEQUENCE_DIRS, plus all .m64 files that are generated from .s files in SOUND_SEQUENCE_DIRS
 SOUND_SEQUENCE_FILES := \
@@ -447,11 +450,11 @@ endif
 ifeq ($(TARGET_N64),1)
   # detect prefix for MIPS toolchain
   ifneq      ($(call find-command,mips-linux-gnu-ld),)
-  CROSS := mips-linux-gnu-
+    CROSS := mips-linux-gnu-
   else ifneq ($(call find-command,mips64-linux-gnu-ld),)
-  CROSS := mips64-linux-gnu-
+    CROSS := mips64-linux-gnu-
   else ifneq ($(call find-command,mips64-elf-ld),)
-  CROSS := mips64-elf-
+    CROSS := mips64-elf-
   else
     $(error Unable to detect a suitable MIPS toolchain installed)
   endif
@@ -505,209 +508,147 @@ ifeq ($(TARGET_N64),1)
   CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
 
   ifeq ($(shell getconf LONG_BIT), 32)
-  # Work around memory allocation bug in QEMU
-  export QEMU_GUEST_BASE := 1
+    # Work around memory allocation bug in QEMU
+    export QEMU_GUEST_BASE := 1
   else
-  # Ensure that gcc treats the code as 32-bit
-  CC_CHECK_CFLAGS += -m32
+    # Ensure that gcc treats the code as 32-bit
+    CC_CHECK_CFLAGS += -m32
   endif
 
   # Prevent a crash with -sopt
   export LANG := C
 
-ifeq ($(TARGET_PS2),1)
-  ifeq ($(PS2SDK),)
-    $(error PS2SDK is not defined)
-  endif
-  ifeq ($(USE_NEW_PS2SDK),1)
-    EE_PREFIX ?= mips64r5900el-ps2-elf-
-    EE_AS_PREFIX ?= $(EE_PREFIX)
-  else
-    EE_PREFIX ?= ee-
-    EE_AS_PREFIX ?=
-  endif
-  CC = $(EE_PREFIX)gcc -std=gnu99
-  CXX= $(EE_PREFIX)g++ -std=gnu99
-  CPP= $(EE_PREFIX)cpp -P
-  AS = $(EE_AS_PREFIX)as
-  LD = $(EE_PREFIX)gcc
-  AR = $(EE_PREFIX)ar
-  OBJCOPY = $(EE_PREFIX)objcopy
-  OBJDUMP = $(EE_PREFIX)objdump
-  STRIP = $(EE_PREFIX)strip
-else
-  AS := as
-  ifneq ($(TARGET_WEB),1)
-<<<<<<< .mine
-else # TARGET_N64
-
-
-ifeq ($(TARGET_PS2),1)
-  ifeq ($(PS2SDK),)
-    $(error PS2SDK is not defined)
-  endif
-  ifeq ($(USE_NEW_PS2SDK),1)
-    EE_PREFIX ?= mips64r5900el-ps2-elf-
-    EE_AS_PREFIX ?= $(EE_PREFIX)
-  else
-    EE_PREFIX ?= ee-
-    EE_AS_PREFIX ?=
-  endif
-  CC = $(EE_PREFIX)gcc -std=gnu99
-  CXX= $(EE_PREFIX)g++ -std=gnu99
-  CPP= $(EE_PREFIX)cpp -P
-  AS = $(EE_AS_PREFIX)as
-  LD = $(EE_PREFIX)gcc
-  AR = $(EE_PREFIX)ar
-  OBJCOPY = $(EE_PREFIX)objcopy
-  OBJDUMP = $(EE_PREFIX)objdump
-  STRIP = $(EE_PREFIX)strip
-else
-  AS := as
-  ifneq ($(TARGET_WEB),1)
-=======
 else # TARGET_N64 == 0
-  
-  AS := as
-  ifneq ($(TARGET_WEB),1)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
->>>>>>> .theirs
-    CC := gcc
-    CXX := g++
-  else
-    CC := emcc
-  endif
-  ifeq ($(TARGET_WINDOWS),1)
-    LD := $(CXX)
-  else
-    LD := $(CC)
-endif
-<<<<<<< .mine
-  CPP := cpp -P
-  OBJDUMP := objdump
-  OBJCOPY := objcopy
-endif
-
-PYTHON := python3
-=======
-  CPP := cpp -P
-  OBJDUMP := objdump
-  OBJCOPY := objcopy
-
-
-
->>>>>>> .theirs
-
-  C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
-  DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
-
-
-  # C compiler options
-  ifeq ($(TARGET_N64),1)
-    CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
-    ifeq ($(COMPILER),gcc)
-      CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
-    else
-      CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
+  ifeq ($(TARGET_PS2),1)
+    ifeq ($(PS2SDK),)
+      $(error PS2SDK is not defined)
     endif
+    ifeq ($(USE_NEW_PS2SDK),1)
+      EE_PREFIX ?= mips64r5900el-ps2-elf-
+      EE_AS_PREFIX ?= $(EE_PREFIX)
+    else
+      EE_PREFIX ?= ee-
+      EE_AS_PREFIX ?=
+    endif
+    CC = $(EE_PREFIX)gcc -std=gnu99
+    CXX= $(EE_PREFIX)g++ -std=gnu99
+    CPP= $(EE_PREFIX)cpp -P
+    AS = $(EE_AS_PREFIX)as
+    LD = $(EE_PREFIX)gcc
+    AR = $(EE_PREFIX)ar
+    OBJCOPY = $(EE_PREFIX)objcopy
+    OBJDUMP = $(EE_PREFIX)objdump
+    STRIP = $(EE_PREFIX)strip
   else
-    CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
-  endif
 
-  ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
-  RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
+    AS := as
+    
+    ifneq ($(TARGET_WEB),1)
+      CC := gcc
+      CXX := g++
+    else
+      CC := emcc
+    endif
+    ifeq ($(TARGET_WINDOWS),1)
+      LD := $(CXX)
+    else
+      LD := $(CC)
+    endif
+    CPP := cpp -P
+    OBJDUMP := objdump
+    OBJCOPY := objcopy
 
-  # C preprocessor flags
-  CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
+    C_DEFINES := $(foreach d,$(DEFINES),-D$(d))
+    DEF_INC_CFLAGS := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(C_DEFINES)
 
-  # Platform-specific compiler and linker flags
-  ifeq ($(TARGET_WINDOWS),1)
-  PLATFORM_CFLAGS  := -DTARGET_WINDOWS
-  PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
-  endif
-  ifeq ($(TARGET_LINUX),1)
-  PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
-  PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
-  endif
-  ifeq ($(TARGET_WEB),1)
-  PLATFORM_CFLAGS  := -DTARGET_WEB
-  PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
-  endif
-ifeq ($(TARGET_PS2),1)
-  AUDSRV     := ps2/ps2-audsrv
-  AUDSRV_IRX := $(BUILD_DIR)/audsrv_irx
-  AUDSRV_LIB := $(BUILD_DIR)/libaudsrv.a
-  FREESD_IRX := $(BUILD_DIR)/freesd_irx
-  PS2_ICON   := ps2/sm64.icn
-  C_FILES += $(AUDSRV_IRX).c $(FREESD_IRX).c $(BUILD_DIR)/ps2_icon.c
-  O_FILES += $(AUDSRV_IRX).o $(FREESD_IRX).o $(BUILD_DIR)/ps2_icon.o
-  PLATFORM_CFLAGS  := -DTARGET_PS2 -D_EE -G0 -I$(AUDSRV)/ee/rpc/audsrv/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -I$(GSKIT)/include
-  PLATFORM_LDFLAGS := -L$(GSKIT)/lib -lgskit -ldmakit $(AUDSRV_LIB) -L$(PS2SDK)/ee/lib -lpad -lmc -ldma -lcdvd -lpatches -lm -lc -lkernel
-  ifneq ($(USE_NEW_PS2SDK),1)
-    PLATFORM_ASFLAGS := --32 -march=generic32
-  endif
-endif
 
-  # Compiler and linker flags for graphics backend
-  ifeq ($(ENABLE_OPENGL),1)
-  GFX_CFLAGS  := -DENABLE_OPENGL
-  GFX_LDFLAGS :=
-  ifeq ($(TARGET_WINDOWS),1)
-    GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
-    GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
-  endif
-  ifeq ($(TARGET_LINUX),1)
-    GFX_CFLAGS  += $(shell sdl2-config --cflags)
-    GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
-  endif
-  ifeq ($(TARGET_WEB),1)
-    GFX_CFLAGS  += -s USE_SDL=2
-    GFX_LDFLAGS += -lGL -lSDL2
-  endif
-  endif
-  ifeq ($(ENABLE_DX11),1)
-  GFX_CFLAGS := -DENABLE_DX11
-  PLATFORM_LDFLAGS += -lgdi32 -static
-  endif
-  ifeq ($(ENABLE_DX12),1)
-  GFX_CFLAGS := -DENABLE_DX12
-  PLATFORM_LDFLAGS += -lgdi32 -static
-  endif
-  
-  GFX_CFLAGS += -DWIDESCREEN
-  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
-  
-  # Check code syntax with host compiler
-  CC_CHECK := gcc
-  ifeq ($(TARGET_N64),1)
-    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
-  else
-    CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
-  endif
+    # C compiler options
+    ifeq ($(TARGET_N64),1)
+      CFLAGS = -G 0 $(OPT_FLAGS) $(TARGET_CFLAGS) $(MIPSISET) $(DEF_INC_CFLAGS)
+      ifeq ($(COMPILER),gcc)
+        CFLAGS += -mno-shared -march=vr4300 -mfix4300 -mabi=32 -mhard-float -mdivide-breaks -fno-stack-protector -fno-common -fno-zero-initialized-in-bss -fno-PIC -mno-abicalls -fno-strict-aliasing -fno-inline-functions -ffreestanding -fwrapv -Wall -Wextra
+      else
+        CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
+      endif
+    else
+      CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -fwrapv -march=native
+    endif
 
-  ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
-  LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
+    ASFLAGS     := $(foreach i,$(INCLUDE_DIRS),-I$(i)) $(foreach d,$(DEFINES),--defsym $(d))
+    RSPASMFLAGS := $(foreach d,$(DEFINES),-definelabel $(subst =, ,$(d)))
+
+    # C preprocessor flags
+    CPPFLAGS := -P -Wno-trigraphs $(DEF_INC_CFLAGS)
+
+    # Platform-specific compiler and linker flags
+    ifeq ($(TARGET_WINDOWS),1)
+      PLATFORM_CFLAGS  := -DTARGET_WINDOWS
+      PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
+    endif
+    ifeq ($(TARGET_LINUX),1)
+      PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
+      PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
+    endif
+    ifeq ($(TARGET_WEB),1)
+      PLATFORM_CFLAGS  := -DTARGET_WEB
+      PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
+    endif
+    ifeq ($(TARGET_PS2),1)
+      AUDSRV     := ps2/ps2-audsrv
+      AUDSRV_IRX := $(BUILD_DIR)/audsrv_irx
+      AUDSRV_LIB := $(BUILD_DIR)/libaudsrv.a
+      FREESD_IRX := $(BUILD_DIR)/freesd_irx
+      PS2_ICON   := ps2/sm64.icn
+      C_FILES += $(AUDSRV_IRX).c $(FREESD_IRX).c $(BUILD_DIR)/ps2_icon.c
+      O_FILES += $(AUDSRV_IRX).o $(FREESD_IRX).o $(BUILD_DIR)/ps2_icon.o
+      PLATFORM_CFLAGS  := -DTARGET_PS2 -D_EE -G0 -I$(AUDSRV)/ee/rpc/audsrv/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -I$(GSKIT)/include
+      PLATFORM_LDFLAGS := -L$(GSKIT)/lib -lgskit -ldmakit $(AUDSRV_LIB) -L$(PS2SDK)/ee/lib -lpad -lmc -ldma -lcdvd -lpatches -lm -lc -lkernel
+      ifneq ($(USE_NEW_PS2SDK),1)
+        PLATFORM_ASFLAGS := --32 -march=generic32
+      endif
+    endif
+
+    # Compiler and linker flags for graphics backend
+    ifeq ($(ENABLE_OPENGL),1)
+      GFX_CFLAGS  := -DENABLE_OPENGL
+      GFX_LDFLAGS :=
+      ifeq ($(TARGET_WINDOWS),1)
+        GFX_CFLAGS  += $(shell sdl2-config --cflags) -DGLEW_STATIC
+        GFX_LDFLAGS += $(shell sdl2-config --libs) -lglew32 -lopengl32 -lwinmm -limm32 -lversion -loleaut32 -lsetupapi
+      endif
+      ifeq ($(TARGET_LINUX),1)
+        GFX_CFLAGS  += $(shell sdl2-config --cflags)
+        GFX_LDFLAGS += -lGL $(shell sdl2-config --libs) -lX11 -lXrandr
+      endif
+      ifeq ($(TARGET_WEB),1)
+        GFX_CFLAGS  += -s USE_SDL=2
+        GFX_LDFLAGS += -lGL -lSDL2
+      endif
+    endif
+    ifeq ($(ENABLE_DX11),1)
+      GFX_CFLAGS := -DENABLE_DX11
+      PLATFORM_LDFLAGS += -lgdi32 -static
+    endif
+    ifeq ($(ENABLE_DX12),1)
+      GFX_CFLAGS := -DENABLE_DX12
+      PLATFORM_LDFLAGS += -lgdi32 -static
+    endif
+    
+    GFX_CFLAGS += -DWIDESCREEN
+    PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+    
+    # Check code syntax with host compiler
+    CC_CHECK := gcc
+    ifeq ($(TARGET_N64),1)
+      CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -std=gnu90 -Wall -Wextra -Wno-format-security -Wno-main -DNON_MATCHING -DAVOID_UB $(DEF_INC_CFLAGS)
+    else
+      CC_CHECK_CFLAGS := -fsyntax-only -fsigned-char $(CC_CFLAGS) $(TARGET_CFLAGS) -Wall -Wextra -Wno-format-security $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS)
+    endif
+
+    ASFLAGS := -I include -I $(BUILD_DIR) $(VERSION_ASFLAGS)
+    LDFLAGS := $(PLATFORM_LDFLAGS) $(GFX_LDFLAGS)
+  endif
 endif
 
 #==============================================================================#
@@ -811,9 +752,9 @@ load: $(ROM)
 libultra: $(BUILD_DIR)/libultra.a
 
 # Extra object file dependencies
-$(BUILD_DIR)/asm/boot.o: $(IPL3_RAW_FILES)
+$(BUILD_DIR)/asm/boot.o:              $(IPL3_RAW_FILES)
 $(BUILD_DIR)/src/game/crash_screen.o: $(CRASH_TEXTURE_C_FILES)
-$(BUILD_DIR)/lib/rsp.o: $(BUILD_DIR)/rsp/rspboot.bin $(BUILD_DIR)/rsp/fast3d.bin $(BUILD_DIR)/rsp/audio.bin
+$(BUILD_DIR)/lib/rsp.o:               $(BUILD_DIR)/rsp/rspboot.bin $(BUILD_DIR)/rsp/fast3d.bin $(BUILD_DIR)/rsp/audio.bin
 $(SOUND_BIN_DIR)/sound_data.o:        $(SOUND_BIN_DIR)/sound_data.ctl.inc.c $(SOUND_BIN_DIR)/sound_data.tbl.inc.c $(SOUND_BIN_DIR)/sequences.bin.inc.c $(SOUND_BIN_DIR)/bank_sets.inc.c
 $(BUILD_DIR)/levels/scripts.o:        $(BUILD_DIR)/include/level_headers.h
 
