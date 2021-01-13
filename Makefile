@@ -65,10 +65,11 @@ endif
 
 TARGET := sm64.$(VERSION)
 
-# Automatic settings only for ports
-ifeq ($(TARGET_N64),0)
+ifeq ($(TARGET_N64),1)
+  USE_EXT_RAM := 1
+else
   NON_MATCHING := 1
-  GRUCODE := f3d_old
+  GRUCODE := f3d_new
   TARGET_WINDOWS := 0
   ifeq ($(TARGET_WEB)$(TARGET_PS2),00)
     ifeq ($(OS),Windows_NT)

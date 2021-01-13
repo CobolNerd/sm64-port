@@ -79,8 +79,61 @@ void osViSwapBuffer(UNUSED void *vaddr) {
 }
 
 OSTime osGetTime(void) {
-    return 0;
+    return osGetUnixTime();
+    //return 0;
 }
+
+#include <stdio.h>
+#include <sys/time.h>
+
+OSTime osGetUnixTime(void) {
+    time_t now = time(NULL);
+    // time_t rawtime = time(NULL);
+
+    // if (rawtime == -1) {
+        
+    //     puts("The time() function failed");
+    //     return 1;
+    // }
+    
+    // struct tm *ptm = localtime(&rawtime);
+    
+    // if (ptm == NULL) {
+        
+    //     puts("The localtime() function failed");
+    //     return 1;
+    // }
+    
+    // long long signed int s64test = -9223372036854775807;
+    // printf("long long unsigned int: %lld\n", s64test);
+    // long long unsigned int u64test = 18446744073709551615;
+    // printf("long long unsigned int: %llu\n", u64test);
+
+    //     //printf("The time is: %02d:%02d:%02d\n", ptm->tm_hour, ptm->tm_min, ptm->tm_isdst);
+    // printf("TIME now %lld\n", now);
+    // printf("TIME ptm %lld\n", ptm); 
+    // printf("TIME localtime %lld\n", localtime(&rawtime));
+    //printf("TIME NOW in miliseconds %lld\n", timeInMilliseconds(now));
+    // //printf("TIME NOW in miliseconds INTEGER %d\n", timeInMilliseconds(now));
+
+    // // struct timeval stop, start;
+    // // gettimeofday(&start, NULL);
+    // // //do stuff
+    // // gettimeofday(&stop, NULL);
+    // // printf("took %lu us\n", (stop.tv_sec - start.tv_sec) * 1000000 + stop.tv_usec - start.tv_usec); 
+
+    // printf("localtime(): %d\n", rawtime);
+    //OSTime ost = now;
+
+    return now;
+}
+
+// long long timeInMilliseconds(void) {
+//     struct timeval tv;
+
+//     gettimeofday(&tv,NULL);
+//     return (((long long)tv.tv_sec)*1000)+(tv.tv_usec/1000);
+// }
 
 void osWritebackDCacheAll(void) {
 }

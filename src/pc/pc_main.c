@@ -67,7 +67,7 @@ u32 gNumVblanks = 0;
 s8 gResetTimer;
 s8 D_8032C648;
 s8 gDebugLevelSelect = FALSE;
-s8 gShowProfiler = FALSE;
+s8 gShowProfiler = TRUE;
 s8 gShowDebugText = FALSE;
 
 static struct AudioAPI *audio_api;
