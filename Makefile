@@ -68,7 +68,7 @@ TARGET := sm64.$(VERSION)
 # Automatic settings only for ports
 ifeq ($(TARGET_N64),0)
   NON_MATCHING := 1
-  GRUCODE := f3d_new
+  GRUCODE := f3d_old
   TARGET_WINDOWS := 0
   ifeq ($(TARGET_WEB)$(TARGET_PS2),00)
     ifeq ($(OS),Windows_NT)
@@ -555,7 +555,9 @@ else # TARGET_N64 == 0
     else
       CFLAGS += -non_shared -Wab,-r4300_mul -Xcpluscomm -Xfullwarn -signed -32
     endif
-  else ifneq ($(TARGET_PS2),1)
+  else ifeq ($(TARGET_PS2),1)
+    CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing
+  else
     CFLAGS = $(OPT_FLAGS) $(TARGET_CFLAGS) $(DEF_INC_CFLAGS) $(MATCH_CFLAGS) $(PLATFORM_CFLAGS) $(GFX_CFLAGS) $(GRUCODE_CFLAGS) -fno-strict-aliasing -frapv -march=native
   endif
 
@@ -570,15 +572,21 @@ else # TARGET_N64 == 0
     PLATFORM_CFLAGS  := -DTARGET_WINDOWS
     PLATFORM_LDFLAGS := -lm -lxinput9_1_0 -lole32 -no-pie -mwindows
   endif
+
   ifeq ($(TARGET_LINUX),1)
     PLATFORM_CFLAGS  := -DTARGET_LINUX `pkg-config --cflags libusb-1.0`
     PLATFORM_LDFLAGS := -lm -lpthread `pkg-config --libs libusb-1.0` -lasound -lpulse -no-pie
   endif
+
   ifeq ($(TARGET_WEB),1)
     PLATFORM_CFLAGS  := -DTARGET_WEB
     PLATFORM_LDFLAGS := -lm -no-pie -s TOTAL_MEMORY=20MB -g4 --source-map-base http://localhost:8080/ -s "EXTRA_EXPORTED_RUNTIME_METHODS=['callMain']"
   endif
+
   ifeq ($(TARGET_PS2),1)
+    
+    INCLUDE_CFLAGS := -I include -I $(BUILD_DIR) -I $(BUILD_DIR)/include -I src -I .
+
     AUDSRV     := ps2/ps2-audsrv
     AUDSRV_IRX := $(BUILD_DIR)/audsrv_irx
     AUDSRV_LIB := $(BUILD_DIR)/libaudsrv.a
@@ -610,18 +618,24 @@ else # TARGET_N64 == 0
       GFX_LDFLAGS += -lGL -lSDL2
     endif
   endif
+
   ifeq ($(ENABLE_DX11),1)
     GFX_CFLAGS := -DENABLE_DX11
     PLATFORM_LDFLAGS += -lgdi32 -static
   endif
+  
   ifeq ($(ENABLE_DX12),1)
     GFX_CFLAGS := -DENABLE_DX12
     PLATFORM_LDFLAGS += -lgdi32 -static
   endif
   
-  GFX_CFLAGS += -DWIDESCREEN
-  PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
-  
+  ifeq ($(TARGET_PS2),1)
+    PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY
+  else
+    GFX_CFLAGS += -DWIDESCREEN
+    PLATFORM_CFLAGS += -DNO_SEGMENTED_MEMORY -DUSE_SYSTEM_MALLOC
+  endif
+
   # Check code syntax with host compiler
   CC_CHECK := $(CC)
   ifeq ($(TARGET_N64),1)
