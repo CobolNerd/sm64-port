@@ -3,7 +3,11 @@
 
 #include <PR/ultratypes.h>
 #include "types.h"
-#include "pc_main.h"
+
+#ifndef TARGET_N64
+#include "../pc/pc_main.h"
+#endif
+
 #include "game_init.h"
 
 #ifdef TARGET_N64

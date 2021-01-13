@@ -25,13 +25,14 @@
 #include "gfx/gfx_dummy.h"
 #ifdef TARGET_PS2
 #include "gfx/gfx_ps2.h"
-#
+#endif
 
 #include "audio/audio_api.h"
 #include "audio/audio_wasapi.h"
 #include "audio/audio_pulse.h"
 #include "audio/audio_alsa.h"
 #include "audio/audio_sdl.h"
+
 #ifdef TARGET_PS2
 #include "audio/audio_ps2.h"
 #endif
@@ -66,8 +67,8 @@ u32 gNumVblanks = 0;
 s8 gResetTimer;
 s8 D_8032C648;
 s8 gDebugLevelSelect = FALSE;
-s8 gShowProfiler = TRUE;
-s8 gShowDebugText = TRUE;
+s8 gShowProfiler = FALSE;
+s8 gShowDebugText = FALSE;
 
 static struct AudioAPI *audio_api;
 static struct GfxWindowManagerAPI *wm_api;
