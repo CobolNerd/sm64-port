@@ -13,7 +13,8 @@
 #include "gfx_window_manager_api.h"
 #include "gfx_screen_config.h"
 #include "gfx_ps2.h"
-#define FRAMERATE_SHIFT 1
+
+#define FRAMERATE_SHIFT 0
 #define FRAMESKIP 10
 
 struct VidMode {

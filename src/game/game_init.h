@@ -12,7 +12,7 @@
 #ifdef USE_SYSTEM_MALLOC
 #define GFX_POOL_SIZE 1
 #else
-#define GFX_POOL_SIZE 6400
+#define GFX_POOL_SIZE 64000
 #endif
 
 struct GfxPool {
