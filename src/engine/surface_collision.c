@@ -7,6 +7,7 @@
 #include "game/object_list_processor.h"
 #include "surface_collision.h"
 #include "surface_load.h"
+#include "game/game_init.h"
 
 /**************************************************
  *                      WALLS                     *

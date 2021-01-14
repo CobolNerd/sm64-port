@@ -83,7 +83,7 @@ static void calculate_frameTime_from_OSTime(long diff) {
 }
 
 static void render_fps(void) {
-    char str[80];
+    //char str[80];
 
     // Toggle rendering framerate with the L button.
     if (gPlayer1Controller->buttonPressed & L_TRIG) {
@@ -725,7 +725,7 @@ void thread5_game_loop(UNUSED void *arg) {
 #else
     gGlobalTimer++;    
     
-    debug_printf("DEBUGRR: gGlobalTimer: %d\n", gGlobalTimer);
+    //debug_printf("DEBUGRR: gGlobalTimer: %d\n", gGlobalTimer);
 }
 
 void game_loop_one_iteration(void) {
