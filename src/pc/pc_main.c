@@ -62,12 +62,12 @@
 OSMesg D_80339BEC;
 OSMesgQueue gSIEventMesgQueue;
 
-s8 sAudioEnabled = FALSE;
+s8 sAudioEnabled = TRUE;
 u32 gNumVblanks = 0;
 s8 gResetTimer;
 s8 D_8032C648;
 s8 gDebugLevelSelect = FALSE;
-s8 gShowProfiler = TRUE;
+s8 gShowProfiler = FALSE;
 s8 gShowDebugText = FALSE;
 
 static struct AudioAPI *audio_api;
@@ -151,7 +151,9 @@ void produce_one_frame(void) {
     if (frame) {
         gfx_start_frame();
         game_loop_one_iteration();
-        audio_frame();
+        if (sAudioEnabled) {
+            audio_frame();
+        }
         gfx_end_frame();
     } else {
         gfx_start_frame();
@@ -164,7 +166,9 @@ void produce_one_frame(void) {
     // render two frames: one real and one interped
     gfx_start_frame();
     game_loop_one_iteration();
-    audio_frame();
+    if (sAudioEnabled) {
+        audio_frame();
+    }
     gfx_end_frame();
 
     gfx_start_frame();
@@ -309,9 +313,11 @@ void main_func(void) {
         audio_api = &audio_null;
     }
 
-    audio_init();
-    sound_init();
-
+    if(sAudioEnabled) {
+        audio_init();
+        sound_init();
+    }
+    
     thread5_game_loop(NULL);
 #ifdef TARGET_WEB
     /*for (int i = 0; i < atoi(argv[1]); i++) {

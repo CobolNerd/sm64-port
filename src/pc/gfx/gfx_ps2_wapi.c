@@ -32,6 +32,8 @@ struct VidMode {
 };
 
 static const struct VidMode vid_modes[] = {
+    // 240p
+    { "240p", GS_MODE_NTSC,      GS_NONINTERLACED,    GS_FRAME,  704,  480,  704,  452, 4, 0, 0 },
     // NTSC
     { "480i", GS_MODE_NTSC,      GS_INTERLACED,    GS_FIELD,  704,  480,  704,  452, 4, 0, 0 },
     { "480p", GS_MODE_DTV_480P,  GS_NONINTERLACED, GS_FRAME,  704,  480,  704,  452, 2, 0, 0 },
@@ -80,13 +82,15 @@ static void gfx_ps2_init(const char *game_name, bool start_in_fullscreen) {
     if (gsKit_detect_signal() == GS_MODE_NTSC)
         vid_mode = &vid_modes[0];
     else
-        vid_mode = &vid_modes[2];
+        vid_mode = &vid_modes[3];
 
     gs_global->ZBuffering = GS_SETTING_ON;
-    gs_global->DoubleBuffering = GS_SETTING_OFF;
+    gs_global->DoubleBuffering = GS_SETTING_ON;
     gs_global->PrimAAEnable = GS_SETTING_OFF;
     gs_global->PSM = GS_PSM_CT16; // RGB565 color buffer
     gs_global->PSMZ = GS_PSMZ_16; // 16-bit unsigned zbuffer
+    gs_global->Width = DESIRED_SCREEN_WIDTH;
+    gs_global->Height = DESIRED_SCREEN_HEIGHT;
 
     gsKit_init_screen(gs_global);
 

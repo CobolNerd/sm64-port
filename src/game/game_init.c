@@ -75,7 +75,7 @@ static OSTime gLastOSTime = 0;
 static float gFrameTime = 0.0f;
 static u16 gFrames = 0;
 static u16 gFPS = 0;
-static u8 gRenderFPS = TRUE;
+static u8 gRenderFPS = FALSE;
 
 static void calculate_frameTime_from_OSTime(long diff) {
     gFrameTime += diff * SECONDS_PER_CYCLE;
@@ -116,7 +116,7 @@ static void render_fps(void) {
             gLastOSTime = newTime;        
         }
 
-        print_text_fmt_int(FPS_COUNTER_X_POS, FPS_COUNTER_Y_POS, "FPS  %d", gFPS);
+        print_text_fmt_int(FPS_COUNTER_X_POS, FPS_COUNTER_Y_POS, "FPS  %d", gFPS * 2);
         // sprintf(str, "FPS %hu", gFPS); //FPS
         // print_text(FPS_COUNTER_X_POS, FPS_COUNTER_Y_POS, str);
         // puts(str);

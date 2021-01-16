@@ -536,6 +536,7 @@ else # TARGET_N64 == 0
     AR = $(EE_PREFIX)ar
     OBJCOPY = $(EE_PREFIX)objcopy
     OBJDUMP = $(EE_PREFIX)objdump
+    # TODO: create make rule for elf strip
     STRIP = $(EE_PREFIX)strip
   else ifeq ($(TARGET_WEB),1)
     CC := emcc
