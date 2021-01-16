@@ -1,9 +1,7 @@
-#define VERSION_SH
 #ifdef VERSION_SH
 
 #include <PR/ultratypes.h>
 #include "types.h"
-#include "pc_main.h"
 #include "game_init.h"
 
 #ifdef TARGET_N64
