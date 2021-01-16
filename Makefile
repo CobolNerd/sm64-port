@@ -6,7 +6,7 @@ include util.mk
 default: all
 
 # Preprocessor definitions
-DEFINES :=
+DEFINES := USE_EXT_RAM=1
 
 #==============================================================================#
 # Build Options                                                                #
