@@ -79,7 +79,16 @@ void osViSwapBuffer(UNUSED void *vaddr) {
 }
 
 OSTime osGetTime(void) {
-    return 0;
+    return osGetUnixTime();
+}
+
+#include <stdio.h>
+#include <sys/time.h>
+
+OSTime osGetUnixTime(void) {
+    time_t now = time(NULL);
+
+    return now;
 }
 
 void osWritebackDCacheAll(void) {

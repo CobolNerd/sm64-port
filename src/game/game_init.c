@@ -59,6 +59,43 @@ struct DemoInput *gCurrDemoInput = NULL; // demo input sequence
 u16 gDemoInputListID = 0;
 struct DemoInput gRecordedDemoInput = { 0 }; // possibly removed in EU. TODO: Check
 
+// SDK states that 1 cycle takes about 21.33 nanoseconds
+#define SECONDS_PER_CYCLE 0.00000002133f
+
+#define FPS_COUNTER_X_POS 24
+#define FPS_COUNTER_Y_POS 190
+
+static OSTime gLastOSTime = 0;
+static float gFrameTime = 0.0f;
+static u16 gFrames = 0;
+static u16 gFPS = 0;
+static u8 gRenderFPS = TRUE;
+
+static void calculate_frameTime_from_OSTime(long diff) {
+    gFrameTime += diff * SECONDS_PER_CYCLE;
+    gFrames++;
+}
+
+static void render_fps(void) {
+    // Toggle rendering framerate with the L button.
+    if (gPlayer1Controller->buttonPressed & L_TRIG) {
+        gRenderFPS ^= 1;
+    }
+
+    if (gRenderFPS) {
+        OSTime newTime = osGetTime();
+        gFrames++;
+        
+        if (newTime > gLastOSTime) {
+            gFPS = gFrames;
+            gFrames = 0;
+            gLastOSTime = newTime;        
+        }
+
+        print_text_fmt_int(FPS_COUNTER_X_POS, FPS_COUNTER_Y_POS, "FPS  %d", gFPS * 2);
+    }
+}
+
 /**
  * Initializes the Reality Display Processor (RDP).
  * This function initializes settings such as texture filtering mode,
@@ -652,6 +689,9 @@ void game_loop_one_iteration(void) {
             // amount of free space remaining.
             print_text_fmt_int(180, 20, "BUF %d", gGfxPoolEnd - (u8 *) gDisplayListHead);
         }
+
+        render_fps();
+        
 #ifdef TARGET_N64
     }
 #endif
