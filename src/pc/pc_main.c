@@ -8,12 +8,20 @@
 #if defined(_WIN32) || defined(_WIN64)
 #include <stdio.h>
 #include <fcntl.h>
+#include <windows.h>
 #endif
 
+// TODO; verify this main.h includes
 #include "sm64.h"
-
-#include "game/memory.h"
-#include "audio/external.h"
+// #include "audio/external.h"
+#include "game/game_init.h"
+// #include "memory.h"
+// #include "game/sound_init.h"
+// #include "game/profiler.h"
+// #include "buffers/buffers.h"
+// #include "segments.h"
+// #include "game/main.h"
+// #include "game/rumble_init.h"
 
 #include "gfx/gfx_pc.h"
 #include "gfx/gfx_opengl.h"
@@ -32,11 +40,8 @@
 #include "audio/audio_null.h"
 
 #include "controller/controller_keyboard.h"
-
 #include "configfile.h"
-
 #include "compat.h"
-
 #include "util.h"
 
 #define CONFIG_FILE "sm64config.txt"
@@ -44,12 +49,15 @@
 OSMesg D_80339BEC;
 OSMesgQueue gSIEventMesgQueue;
 
+s8 sAudioEnabled = TRUE;
 u32 gNumVblanks = 0;
-s8 gResetTimer;
-s8 D_8032C648;
+s8 gResetTimer = 0;
+s8 D_8032C648 = 0;
 s8 gDebugLevelSelect = FALSE;
-s8 gShowProfiler = TRUE;
-s8 gShowDebugText = TRUE;
+s8 D_8032C650 = 0;
+
+s8 gShowProfiler = FALSE;
+s8 gShowDebugText = FALSE;
 
 static struct AudioAPI *audio_api;
 static struct GfxWindowManagerAPI *wm_api;
@@ -68,7 +76,6 @@ void set_vblank_handler(UNUSED s32 index, UNUSED struct VblankHandler *handler, 
 
 static uint8_t inited = 0;
 
-#include "game/game_init.h" // for gGlobalTimer
 void send_display_list(struct SPTask *spTask) {
     if (!inited) {
         return;
@@ -233,7 +240,6 @@ void main_func(void) {
 }
 
 #if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
 int WINAPI WinMain(UNUSED HINSTANCE hInstance, UNUSED HINSTANCE hPrevInstance, UNUSED LPSTR pCmdLine, UNUSED int nCmdShow) {
     SetStdOutToNewConsole();
     main_func();

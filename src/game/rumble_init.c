@@ -1,8 +1,12 @@
 #ifdef VERSION_SH
+#include <ultra64.h>
+#include "macros.h"
 
-#include <PR/ultratypes.h>
-#include "types.h"
-#include "game_init.h"
+#include "buffers/buffers.h"
+#include "main.h"
+#include "rumble_init.h"
+
+// TODO: implement rumble/vibration for non N64 targets
 
 #ifdef TARGET_N64
 OSThread gRumblePakThread;
