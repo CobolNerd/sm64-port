@@ -2988,8 +2988,7 @@ typedef union {
 }}
 #else
 #define	gSPSetOtherMode(pkt, cmd, sft, len, data)			\
-{									\
-	Gfx *_g = (Gfx *)(pkt);				\
+{			\
 }
 
 #define	gsSPSetOtherMode(cmd, sft, len, data)				\
