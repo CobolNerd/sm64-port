@@ -2981,10 +2981,10 @@ typedef union {
 	_g->words.w1 = (unsigned int)(data);				\
 }
 
-#define	gsSPSetOtherMode(cmd, sft, len, data)
+#define	gsSPSetOtherMode(cmd, sft, len, data) 1
 #else
-#define	gSPSetOtherMode(pkt, cmd, sft, len, data)
-#define	gsSPSetOtherMode(cmd, sft, len, data)
+#define	gSPSetOtherMode(pkt, cmd, sft, len, data) 1
+#define	gsSPSetOtherMode(cmd, sft, len, data) 1
 #endif
 
 /*
