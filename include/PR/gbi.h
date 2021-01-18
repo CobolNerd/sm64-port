@@ -2982,20 +2982,13 @@ typedef union {
 }
 
 #define	gsSPSetOtherMode(cmd, sft, len, data)				\
-{{									\
-	_SHIFTL(cmd,24,8)|_SHIFTL(32-(sft)-(len),8,8)|_SHIFTL((len)-1,0,8), \
-	(unsigned int)(data)						\
-}}
+{}
 #else
 #define	gSPSetOtherMode(pkt, cmd, sft, len, data)			\
-{			\
-}
+{}
 
 #define	gsSPSetOtherMode(cmd, sft, len, data)				\
-{{									\
-	_SHIFTL(cmd, 24, 8) | _SHIFTL(sft, 8, 8) | _SHIFTL(len, 0, 8),	\
-	(unsigned int)(data)						\
-}}
+{}
 #endif
 
 /*
