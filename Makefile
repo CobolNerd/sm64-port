@@ -6,7 +6,7 @@ include util.mk
 default: all
 
 # Preprocessor definitions
-DEFINES := USE_EXT_RAM=1
+DEFINES := 
 
 #==============================================================================#
 # Build Options                                                                #
@@ -47,12 +47,12 @@ else ifeq ($(VERSION),us)
   VERSION_JP_US  ?= true
 else ifeq ($(VERSION),eu)
   DEFINES   += VERSION_EU=1
-  OPT_FLAGS := -O2
+  OPT_FLAGS := -g
   GRUCODE   ?= f3d_new
   VERSION_JP_US  ?= false
 else ifeq ($(VERSION),sh)
   DEFINES   += VERSION_SH=1
-  OPT_FLAGS := -O2
+  OPT_FLAGS := -g
   GRUCODE   ?= f3d_new
   VERSION_JP_US  ?= false
 endif
@@ -101,7 +101,7 @@ ifeq      ($(COMPILER),ido)
 else ifeq ($(COMPILER),gcc)
   NON_MATCHING := 1
   MIPSISET     := -mips3
-  OPT_FLAGS    := -O2
+  OPT_FLAGS    := 
 endif
 
 
@@ -660,52 +660,52 @@ ifeq ($(COMPILER),ido)
   $(BUILD_DIR)/src/goddard/%.o:      OPT_FLAGS := -g
   $(BUILD_DIR)/src/goddard/%.o:      MIPSISET := -mips1
   $(BUILD_DIR)/lib/src/%.o:          OPT_FLAGS :=
-  $(BUILD_DIR)/lib/src/math/%.o:     OPT_FLAGS := -O2
+  $(BUILD_DIR)/lib/src/math/%.o:     OPT_FLAGS := 
   $(BUILD_DIR)/lib/src/math/ll%.o:   OPT_FLAGS :=
   $(BUILD_DIR)/lib/src/math/ll%.o:   MIPSISET := -mips3 -32
-  $(BUILD_DIR)/lib/src/ldiv.o:       OPT_FLAGS := -O2
-  $(BUILD_DIR)/lib/src/string.o:     OPT_FLAGS := -O2
-  $(BUILD_DIR)/lib/src/gu%.o:        OPT_FLAGS := -O3
-  $(BUILD_DIR)/lib/src/al%.o:        OPT_FLAGS := -O3
-  # For the asm-processor, since it doesn't support -O3. Probably not actually compiled with these flags.
+  $(BUILD_DIR)/lib/src/ldiv.o:       OPT_FLAGS := 
+  $(BUILD_DIR)/lib/src/string.o:     OPT_FLAGS := 
+  $(BUILD_DIR)/lib/src/gu%.o:        OPT_FLAGS := 
+  $(BUILD_DIR)/lib/src/al%.o:        OPT_FLAGS := 
+  # For the asm-processor, since it doesn't support . Probably not actually compiled with these flags.
   ifeq ($(VERSION),sh)
-    $(BUILD_DIR)/lib/src/unk_shindou_file.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/func_sh_80304D20.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/_Printf.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/contramread.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/osPfsIsPlug.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/osAiSetFrequency.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/contramwrite.o: OPT_FLAGS := -O1
-    $(BUILD_DIR)/lib/src/sprintf.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Litob.o: OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Ldtob.o: OPT_FLAGS := -O3
+    $(BUILD_DIR)/lib/src/unk_shindou_file.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/func_sh_80304D20.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/_Printf.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/contramread.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/osPfsIsPlug.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/osAiSetFrequency.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/contramwrite.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/sprintf.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/_Litob.o: OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/_Ldtob.o: OPT_FLAGS := 
     $(BUILD_DIR)/lib/src/osDriveRomInit.o: OPT_FLAGS := -g
   endif
   ifeq ($(VERSION),eu)
-    $(BUILD_DIR)/lib/src/_Litob.o:   OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Ldtob.o:   OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/_Printf.o:  OPT_FLAGS := -O3
-    $(BUILD_DIR)/lib/src/sprintf.o:  OPT_FLAGS := -O3
+    $(BUILD_DIR)/lib/src/_Litob.o:   OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/_Ldtob.o:   OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/_Printf.o:  OPT_FLAGS := 
+    $(BUILD_DIR)/lib/src/sprintf.o:  OPT_FLAGS := 
 
     # Enable loop unrolling except for external.c (external.c might also have used
     # unrolling, but it makes one loop harder to match).
     # For all audio files other than external.c and port_eu.c, put string literals
     # in .data. (In Shindou, the port_eu.c string literals also moved to .data.)
-    $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS := -O2 -use_readwrite_const
-    $(BUILD_DIR)/src/audio/port_eu.o:  OPT_FLAGS := -O2
-    $(BUILD_DIR)/src/audio/external.o: OPT_FLAGS := -O2 -Wo,-loopunroll,0
+    $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS :=  -use_readwrite_const
+    $(BUILD_DIR)/src/audio/port_eu.o:  OPT_FLAGS := 
+    $(BUILD_DIR)/src/audio/external.o: OPT_FLAGS :=  -Wo,-loopunroll,0
   endif
   ifeq ($(VERSION_JP_US),true)
-    $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS := -O2 -Wo,-loopunroll,0
-    $(BUILD_DIR)/src/audio/load.o:     OPT_FLAGS := -O2 -framepointer -Wo,-loopunroll,0
+    $(BUILD_DIR)/src/audio/%.o:        OPT_FLAGS :=  -Wo,-loopunroll,0
+    $(BUILD_DIR)/src/audio/load.o:     OPT_FLAGS :=  -framepointer -Wo,-loopunroll,0
   endif
   ifeq ($(VERSION_JP_US),true)
     # The source-to-source optimizer copt is enabled for audio. This makes it use
     # acpp, which needs -Wp,-+ to handle C++-style comments.
     # All other files than external.c should really use copt, but only a few have
     # been matched so far.
-    $(BUILD_DIR)/src/audio/effects.o:   OPT_FLAGS := -O2 -Wo,-loopunroll,0 -sopt,-inline=sequence_channel_process_sound,-scalaroptimize=1 -Wp,-+
-    $(BUILD_DIR)/src/audio/synthesis.o: OPT_FLAGS := -O2 -sopt,-scalaroptimize=1 -Wp,-+
+    $(BUILD_DIR)/src/audio/effects.o:   OPT_FLAGS :=  -Wo,-loopunroll,0 -sopt,-inline=sequence_channel_process_sound,-scalaroptimize=1 -Wp,-+
+    $(BUILD_DIR)/src/audio/synthesis.o: OPT_FLAGS :=  -sopt,-scalaroptimize=1 -Wp,-+
   endif
 
 # Add a target for build/eu/src/audio/*.copt to make it easier to see debug
