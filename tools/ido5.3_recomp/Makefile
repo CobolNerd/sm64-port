@@ -1,11 +1,11 @@
 IRIX_ROOT := ../ido5.3_compiler
 
-cc: OPT_CFLAGS :=
-cfe: OPT_CFLAGS :=
-uopt: OPT_CFLAGS :=
-ugen: OPT_CFLAGS := 
-as1: OPT_CFLAGS :=
-acpp: OPT_CFLAGS :=
+cc: OPT_CFLAGS := -O2
+cfe: OPT_CFLAGS := -O2
+uopt: OPT_CFLAGS := -O2
+ugen: OPT_CFLAGS := -O2
+as1: OPT_CFLAGS := -O2
+acpp: OPT_CFLAGS := -O2
 
 RECOMP := recomp
 
@@ -17,10 +17,10 @@ clean:
 	$(RM) cc* cfe* uopt* ugen* as1* acpp* copt* ujoin* uld* umerge* usplit* err.english.cc $(RECOMP) libc_impl.o
 
 $(RECOMP): recomp.cpp
-	$(CXX) $^ -o $@ -std=c++11 -Wno-switch `pkg-config --cflags --libs capstone`
+	$(CXX) $^ -o $@ -std=c++11 -O2 -Wno-switch `pkg-config --cflags --libs capstone`
 
 libc_impl.o: libc_impl.c libc_impl.h
-	$(CC) $< -c -fno-strict-aliasing -DIDO53
+	$(CC) $< -c -fno-strict-aliasing -O2 -DIDO53
 
 err.english.cc: $(IRIX_ROOT)/usr/lib/err.english.cc
 	cp $^ $@
