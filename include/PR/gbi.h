@@ -3210,11 +3210,7 @@ typedef union {
             gDPSetColor(pkt, cmd,					\
 			(_SHIFTL(r, 24, 8) | _SHIFTL(g, 16, 8) | 	\
 			 _SHIFTL(b, 8, 8) | _SHIFTL(a, 0, 8)))
-#define	sDPRGBColor(cmd, r, g, b, a)					\
-	    gsDPSetColor(cmd,						\
-			 (_SHIFTL(r, 24, 8) | _SHIFTL(g, 16, 8) | 	\
-			  _SHIFTL(b, 8, 8) | _SHIFTL(a, 0, 8)))
-
+#define	sDPRGBColor(cmd, r, g, b, a) gsDPSetColor(cmd, (_SHIFTL(r, 24, 8) | _SHIFTL(g, 16, 8) | _SHIFTL(b, 8, 8) | _SHIFTL(a, 0, 8)))
 #define	gDPSetEnvColor(pkt, r, g, b, a)					\
             DPRGBColor(pkt, G_SETENVCOLOR, r,g,b,a)
 #define	gsDPSetEnvColor(r, g, b, a)					\
@@ -3225,8 +3221,7 @@ typedef union {
             sDPRGBColor(G_SETBLENDCOLOR, r,g,b,a)
 #define	gDPSetFogColor(pkt, r, g, b, a)					\
             DPRGBColor(pkt, G_SETFOGCOLOR, r,g,b,a)
-#define	gsDPSetFogColor(r, g, b, a)					\
-            sDPRGBColor(G_SETFOGCOLOR, r,g,b,a)
+#define	gsDPSetFogColor(r, g, b, a) sDPRGBColor(G_SETFOGCOLOR, r,g,b,a)
 #define	gDPSetFillColor(pkt, d)						\
             gDPSetColor(pkt, G_SETFILLCOLOR, (d))
 #define	gsDPSetFillColor(d)						\
