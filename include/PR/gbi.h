@@ -3085,9 +3085,7 @@ typedef union {
 #define	gDPSetRenderMode(pkt, c0, c1)	\
 	gSPSetOtherMode(pkt, G_SETOTHERMODE_L, G_MDSFT_RENDERMODE, 29, 	\
 			(c0) | (c1))
-#define	gsDPSetRenderMode(c0, c1)	\
-	gsSPSetOtherMode(G_SETOTHERMODE_L, G_MDSFT_RENDERMODE, 29, 	\
-			 (c0) | (c1))
+#define	gsDPSetRenderMode(c0, c1) gsSPSetOtherMode(G_SETOTHERMODE_L, G_MDSFT_RENDERMODE, 29, (c0) | (c1))
 
 #define	gSetImage(pkt, cmd, fmt, siz, width, i)				\
 {									\
