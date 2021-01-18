@@ -2989,11 +2989,7 @@ typedef union {
 #else
 #define	gSPSetOtherMode(pkt, cmd, sft, len, data)			\
 {									\
-	Gfx *_g = (Gfx *)(pkt);						\
-									\
-	_g->words.w0 = (_SHIFTL(cmd, 24, 8) | _SHIFTL(sft, 8, 8) |	\
-			_SHIFTL(len, 0, 8));				\
-	_g->words.w1 = (unsigned int)(data);				\
+	Gfx *_g = (Gfx *)(pkt);				\
 }
 
 #define	gsSPSetOtherMode(cmd, sft, len, data)				\
