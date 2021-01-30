@@ -58,6 +58,9 @@ ifeq ($(HOST_ENV),MinGW)
   armips_LDFLAGS += -municode
 endif
 
+aiff_extract_codebook.c:
+aiff_extract_codebook_CFLAGS := $(CFLAGS) -D_C99_SOURCE
+
 all-except-recomp: $(LIBAUDIOFILE) $(BUILD_PROGRAMS)
 
 all: all-except-recomp ido5.3_recomp
@@ -73,11 +76,11 @@ $(1): $($1_SOURCES)
 endef
 
 ido5.3_recomp:
-	$(MAKE) -C ido5.3_recomp
+	$(MAKE) -j$(nproc) -C ido5.3_recomp
 
 $(foreach p,$(BUILD_PROGRAMS),$(eval $(call COMPILE,$(p))))
 
 $(LIBAUDIOFILE):
-	@$(MAKE) -C audiofile
+	@$(MAKE) -j$(nproc) -C audiofile
 
 .PHONY: all all-except-recomp clean default ido5.3_recomp
