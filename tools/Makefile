@@ -64,8 +64,8 @@ all: all-except-recomp ido5.3_recomp
 
 clean:
 	$(RM) $(ALL_PROGRAMS)
-	$(MAKE) -C audiofile clean
-	$(MAKE) -C ido5.3_recomp clean
+	$(MAKE) -j`nproc` -C audiofile clean
+	$(MAKE) -j`nproc` -C ido5.3_recomp clean
 
 define COMPILE
 $(1): $($1_SOURCES)
@@ -73,11 +73,11 @@ $(1): $($1_SOURCES)
 endef
 
 ido5.3_recomp:
-	$(MAKE) -C ido5.3_recomp
+	$(MAKE) -j`nproc` -C ido5.3_recomp
 
 $(foreach p,$(BUILD_PROGRAMS),$(eval $(call COMPILE,$(p))))
 
 $(LIBAUDIOFILE):
-	@$(MAKE) -C audiofile
+	@$(MAKE) -j`nproc` -C audiofile
 
 .PHONY: all all-except-recomp clean default ido5.3_recomp
